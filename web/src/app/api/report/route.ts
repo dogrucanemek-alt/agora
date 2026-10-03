@@ -1,5 +1,5 @@
-import { checkReport, type ReportInput } from "@/lib/report";
-import { addReport, store } from "@/lib/store";
+import type { ReportInput } from "@/lib/report";
+import { fileReport } from "@/lib/store";
 
 const MAX_BODY = 64 * 1024;
 
@@ -12,9 +12,7 @@ export async function POST(request: Request) {
   } catch {
     body = null;
   }
-  const s = await store();
-  const r = checkReport(body, { knownServer: (n) => s.known.has(n), seenReceipt: (id) => s.seen.has(id) });
+  const r = await fileReport(body);
   if (!r.ok) return Response.json({ ok: false, problems: r.problems }, { status: 422 });
-  await addReport(r.entry);
   return Response.json({ ok: true, report: r.entry }, { status: 201 });
 }

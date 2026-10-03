@@ -3,7 +3,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { ReportEntry } from "./report";
+import { checkReport, type ReportEntry, type ReportInput } from "./report";
 
 export type Server = {
   name: string;
@@ -49,6 +49,14 @@ export async function addReport(entry: ReportEntry): Promise<void> {
   await writeFile(path.join(DATA, "reports.json"), JSON.stringify(s.reports, null, 1));
 }
 
+// The one write path for reports; the REST route and the MCP tool both go through here.
+export async function fileReport(input: ReportInput | null) {
+  const s = await store();
+  const r = checkReport(input, { knownServer: (n) => s.known.has(n), seenReceipt: (id) => s.seen.has(id) });
+  if (r.ok) await addReport(r.entry);
+  return r;
+}
+
 export async function search(q: string, limit = 20) {
   const s = await store();
   const terms = q.toLowerCase().split(/\s+/).filter((t) => t.length > 1);
@@ -89,3 +97,10 @@ export async function search(q: string, limit = 20) {
 }
 
 export type SearchResult = Awaited<ReturnType<typeof search>>;
+
+export async function getServer(name: string) {
+  const s = await store();
+  const server = s.servers.find((x) => x.name === name);
+  if (!server) return null;
+  return { server, reports: s.reports.filter((r) => r.server === name) };
+}
