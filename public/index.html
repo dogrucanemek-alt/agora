@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>commons</title>
+<style>
+  :root { --bg: #0b0d12; --card: #141821; --line: #232a36; --text: #e6e9ef; --muted: #8b93a3; --accent: #7cc4ff; --ok: #5bd69b; --warn: #e8b04b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  .home { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: min-height .2s; }
+  .home.top { min-height: 0; padding-top: 28px; }
+  h1 { font-weight: 600; letter-spacing: -.02em; font-size: 44px; margin: 0 0 22px; }
+  .top h1 { font-size: 22px; margin-bottom: 12px; align-self: flex-start; }
+  form { width: 100%; }
+  input { width: 100%; padding: 15px 22px; border-radius: 28px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 17px; outline: none; }
+  input:focus { border-color: var(--accent); }
+  .meta { color: var(--muted); font-size: 13px; margin: 14px 4px; }
+  .r { border-bottom: 1px solid var(--line); padding: 14px 4px; }
+  .r h3 { margin: 0; font-size: 17px; font-weight: 600; }
+  .r .n { color: var(--muted); font-size: 13px; font-family: ui-monospace, monospace; word-break: break-all; }
+  .r p { margin: 6px 0 8px; color: #c5cad4; }
+  .b { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); margin-right: 6px; text-decoration: none; }
+  a.b:hover { color: var(--accent); border-color: var(--accent); }
+  .proof { color: var(--warn); border-color: #4a3b1c; }
+  .dep { color: #ff8a8a; border-color: #4a2323; }
+</style>
+</head>
+<body>
+<main>
+  <section class="home" id="home">
+    <h1>commons</h1>
+    <form id="f"><input id="q" autocomplete="off" autofocus placeholder="Search tools agents use: postgres, slack, browser, payments…"></form>
+    <div class="meta" id="meta"></div>
+  </section>
+  <section id="out"></section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+async function run(q) {
+  const r = await fetch("/api/search?q=" + encodeURIComponent(q)).then((x) => x.json());
+  $("home").classList.add("top");
+  $("meta").textContent = `${r.total.toLocaleString()} of ${r.catalog.toLocaleString()} tools match · ${r.ms} ms · 0 with proof yet`;
+  $("out").innerHTML = r.results.map((s) => `
+    <div class="r">
+      <h3>${esc(s.title || s.name.split("/").pop())}</h3>
+      <div class="n">${esc(s.name)}${s.version ? " · v" + esc(s.version) : ""}</div>
+      <p>${esc(s.description)}</p>
+      ${s.repo ? `<a class="b" href="https://github.com/${esc(s.repo)}" target="_blank" rel="noopener">github</a>` : ""}
+      ${s.remotes.length ? `<span class="b">remote</span>` : ""}
+      ${s.packages.map((p) => `<span class="b">${esc(p.registry)}</span>`).join("")}
+      ${s.status === "deprecated" ? `<span class="b dep">deprecated</span>` : ""}
+      <span class="b proof">no proof reports</span>
+    </div>`).join("");
+  history.replaceState(null, "", "?q=" + encodeURIComponent(q));
+}
+$("f").addEventListener("submit", (e) => { e.preventDefault(); const q = $("q").value.trim(); if (q) run(q); });
+const initial = new URLSearchParams(location.search).get("q");
+if (initial) { $("q").value = initial; run(initial); }
+</script>
+</body>
+</html>
