@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { checkReport, keyId } from "../lib/report.mjs";
+import { checkReport, keyId } from "../web/src/lib/report.ts";
 
 // Verax test vectors v1 (Apache-2.0): a real signed ledger and its record key.
 const V = new URL("../../verax/test-vectors/v1/valid-full/", import.meta.url);

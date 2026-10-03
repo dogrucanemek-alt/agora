@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "catalog": "node scripts/katalog.mjs",
-    "dev": "node scripts/serve.mjs",
-    "test": "node --test tests/"
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "test": "node --test tests/report.test.mjs"
   },
   "dependencies": {
     "@cedulon/core": "0.13.1"

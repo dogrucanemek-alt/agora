@@ -1,14 +1,15 @@
 // Deep-space backdrop for the search page: a star shell all around, a spiral galaxy in the
 // distance, nebula clouds with dark dust lanes, and a few far galaxies. The camera drifts
 // slowly and leans toward the pointer. Point shader adapted from the Verax site sky.
+// Client-only: mounted from components/Sky.tsx.
 
-import * as THREE from "/vendor/three-0.184.0.module.min.js";
+import * as THREE from "three";
 
-function rng(seed) {
+function rng(seed: number): () => number {
   let s = seed >>> 0;
   return () => ((s = (Math.imul(s ^ (s >>> 15), 0x2c1b3c6d) + 0x297a2d39) >>> 0) / 4294967296);
 }
-const gauss = (r) => (r() + r() + r() - 1.5) * 1.6;
+const gauss = (r: () => number): number => (r() + r() + r() - 1.5) * 1.6;
 
 const POINT_VERT = `
   attribute float aSize; attribute float aPhase; attribute vec3 aColor;
@@ -32,7 +33,9 @@ const POINT_FRAG = `
     gl_FragColor = vec4(vColor * vTw, a * vTw);
   }`;
 
-function points(list, scale) {
+type Pt = { x: number; y: number; z: number; c: number; s: number; ph: number };
+
+function points(list: Pt[], scale: { value: number }) {
   const n = list.length;
   const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), sz = new Float32Array(n), ph = new Float32Array(n);
   const c = new THREE.Color();
@@ -56,10 +59,10 @@ function points(list, scale) {
   return pts;
 }
 
-function tex(draw, size = 256) {
+function tex(draw: (g: CanvasRenderingContext2D, size: number) => void, size = 256) {
   const c = document.createElement("canvas");
   c.width = c.height = size;
-  draw(c.getContext("2d"), size);
+  draw(c.getContext("2d")!, size);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -71,7 +74,7 @@ const glowTex = () => tex((g, s) => {
   g.fillStyle = gr; g.fillRect(0, 0, s, s);
 }, 128);
 // a wispy cloud: many soft blobs, denser in the middle, faded to zero at the edge
-const cloudTex = (seed) => tex((g, s) => {
+const cloudTex = (seed: number) => tex((g, s) => {
   const r = rng(seed), h = s / 2;
   // filaments: blobs strung along a few curving strands, so the cloud reads as wisps, not balls
   for (let f = 0; f < 7; f++) {
@@ -98,13 +101,13 @@ const cloudTex = (seed) => tex((g, s) => {
   g.fillStyle = fade; g.fillRect(0, 0, s, s);
 }, 512);
 
-function sprite(map, color, scale, opacity, blending = THREE.AdditiveBlending) {
+function sprite(map: THREE.Texture, color: number, scale: number, opacity: number, blending: THREE.Blending = THREE.AdditiveBlending) {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, color, transparent: true, opacity, depthWrite: false, blending }));
   s.scale.set(scale, scale * 0.8, 1);
   return s;
 }
 
-export function mountSky(canvas) {
+export function mountSky(canvas: HTMLCanvasElement): () => void {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const lite = (navigator.hardwareConcurrency || 4) <= 4 || innerWidth < 700;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "high-performance" });
@@ -112,13 +115,14 @@ export function mountSky(canvas) {
   renderer.setClearColor(0x03040a, 1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
+  const timed: THREE.ShaderMaterial[] = [];
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 3000);
   const uScale = { value: 1 };
   const r = rng(20261004);
   const glow = glowTex();
 
   // 1. the star shell all around us
-  const shell = [];
+  const shell: Pt[] = [];
   for (let i = 0; i < (lite ? 5000 : 11000); i++) {
     const u = r() * 2 - 1, th = r() * Math.PI * 2, rad = 380 + r() * 900, k = Math.sqrt(1 - u * u);
     const t = r();
@@ -126,12 +130,14 @@ export function mountSky(canvas) {
       c: t < 0.12 ? 0xaecbff : t < 0.2 ? 0xffd9b0 : t < 0.24 ? 0xffb0b0 : 0xffffff,
       s: r() < 0.03 ? 14 + r() * 14 : 3 + r() * 7, ph: r() });
   }
-  scene.add(points(shell, uScale));
+  const shellPts = points(shell, uScale);
+  timed.push(shellPts.material);
+  scene.add(shellPts);
 
   // 2. a spiral galaxy, far off to the upper right, tilted toward us
   const galaxy = new THREE.Group();
   const ARMS = 2, R0 = 4, R1 = 95, SWEEP = Math.PI * 2.4, B = Math.log(R1 / R0) / SWEEP;
-  const gal = [];
+  const gal: Pt[] = [];
   for (let i = 0; i < (lite ? 7000 : 16000); i++) {
     const arm = i % ARMS, t = 0.06 + Math.pow(r(), 0.8) * 0.94, th = t * SWEEP;
     const rad = R0 * Math.exp(B * th), a = th + (arm * Math.PI * 2) / ARMS, spread = 1 + 7 * t;
@@ -141,7 +147,9 @@ export function mountSky(canvas) {
       c: t < 0.18 ? (q < 0.6 ? 0xffe2b8 : 0xfff2dd) : q < 0.55 ? 0xb9d2ff : q < 0.75 ? 0xffffff : q < 0.8 ? 0xff9ec4 : 0xd7e4ff,
       s: 1.3 + r() * 2.6, ph: r() });
   }
-  galaxy.add(points(gal, uScale));
+  const galPts = points(gal, uScale);
+  timed.push(galPts.material);
+  galaxy.add(galPts);
   galaxy.add(sprite(glow, 0xffe6c4, 46, 0.55), sprite(glow, 0xffffff, 14, 0.8));
   for (let k = 0; k < ARMS; k++) for (let j = 0; j < 26; j++) {
     const t = 0.1 + (j / 26) * 0.85, th = t * SWEEP, rad = R0 * Math.exp(B * th), a = th + (k * Math.PI * 2) / ARMS;
@@ -183,8 +191,16 @@ export function mountSky(canvas) {
 
   // motion: a slow drift, a lean toward the pointer, the galaxy turning on its own axis
   let px = 0, py = 0, lx = 0, ly = 0, visible = true, raf = 0;
-  addEventListener("pointermove", (e) => { px = e.clientX / innerWidth * 2 - 1; py = e.clientY / innerHeight * 2 - 1; }, { passive: true });
-  document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible && !reduce) loop(); });
+  const onMove = (e: PointerEvent) => {
+    px = (e.clientX / innerWidth) * 2 - 1;
+    py = (e.clientY / innerHeight) * 2 - 1;
+  };
+  addEventListener("pointermove", onMove, { passive: true });
+  const onVis = () => {
+    visible = !document.hidden;
+    if (visible && !reduce) loop();
+  };
+  document.addEventListener("visibilitychange", onVis);
 
   function resize() {
     const w = innerWidth, h = innerHeight;
@@ -197,14 +213,14 @@ export function mountSky(canvas) {
   resize();
 
   const t0 = performance.now();
-  function frame(now) {
+  function frame(now: number) {
     const t = (now - t0) / 1000;
     lx += (px - lx) * 0.03; ly += (py - ly) * 0.03;
     const yaw = t * 0.006 + lx * 0.06, pitch = -ly * 0.035;
     camera.position.set(Math.sin(t * 0.03) * 6, Math.sin(t * 0.021) * 3, 0);
     camera.lookAt(Math.sin(yaw) * 100, Math.sin(pitch) * 100 + 4, -Math.cos(yaw) * 100);
     galaxy.rotation.y = 0.3 + t * 0.01;
-    scene.traverse((o) => { if (o.material?.uniforms?.uTime) o.material.uniforms.uTime.value = t; });
+    for (const m of timed) m.uniforms.uTime.value = t;
     renderer.render(scene, camera);
   }
   function loop(now = performance.now()) {
@@ -212,6 +228,14 @@ export function mountSky(canvas) {
     frame(now);
     raf = requestAnimationFrame(loop);
   }
-  if (reduce) frame(t0 + 20000); else loop();
-  return () => cancelAnimationFrame(raf);
+  if (reduce) frame(t0 + 20000);
+  else loop();
+  return () => {
+    cancelAnimationFrame(raf);
+    visible = false;
+    removeEventListener("pointermove", onMove);
+    removeEventListener("resize", resize);
+    document.removeEventListener("visibilitychange", onVis);
+    renderer.dispose();
+  };
 }
