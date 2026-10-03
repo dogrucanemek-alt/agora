@@ -1,0 +1,13 @@
+{
+  "name": "commons",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "catalog": "node scripts/katalog.mjs",
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "@cedulon/core": "0.13.1"
+  }
+}

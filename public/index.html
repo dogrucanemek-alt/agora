@@ -29,6 +29,7 @@
   .b { display: inline-block; font-size: 12px; padding: 1px 9px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); margin-right: 6px; text-decoration: none; background: rgba(255,255,255,.03); }
   a.b:hover { color: var(--accent); border-color: var(--accent); }
   .proof { color: var(--warn); border-color: rgba(232,176,75,.3); }
+  .proof.ok { color: #6fe0a4; border-color: rgba(111,224,164,.35); background: rgba(111,224,164,.06); }
   .dep { color: #ff9a9a; border-color: rgba(255,120,120,.3); }
 </style>
 </head>
@@ -50,7 +51,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 async function run(q) {
   const r = await fetch("/api/search?q=" + encodeURIComponent(q)).then((x) => x.json());
   $("home").classList.add("top");
-  $("meta").textContent = `${r.total.toLocaleString()} of ${r.catalog.toLocaleString()} tools match · ${r.ms} ms · 0 with proof yet`;
+  $("meta").textContent = `${r.total.toLocaleString()} of ${r.catalog.toLocaleString()} tools match · ${r.ms} ms · ${r.withProof} with signed reports`;
   $("out").innerHTML = r.results.map((s) => `
     <div class="r">
       <h3>${esc(s.title || s.name.split("/").pop())}</h3>
@@ -60,7 +61,9 @@ async function run(q) {
       ${s.remotes.length ? `<span class="b">remote</span>` : ""}
       ${s.packages.map((p) => `<span class="b">${esc(p.registry)}</span>`).join("")}
       ${s.status === "deprecated" ? `<span class="b dep">deprecated</span>` : ""}
-      <span class="b proof">no proof reports</span>
+      ${s.proofs.count
+        ? `<span class="b proof ok" title="Signed by the reporting operator's gate key. Shows the call went through that gate; the server link is the reporter's claim.">${s.proofs.count} signed report${s.proofs.count > 1 ? "s" : ""} · ${s.proofs.works} works · ${s.proofs.operators} operator${s.proofs.operators > 1 ? "s" : ""}</span>`
+        : `<span class="b proof">no signed reports</span>`}
     </div>`).join("");
   history.replaceState(null, "", "?q=" + encodeURIComponent(q));
 }
