@@ -5,29 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>commons</title>
 <style>
-  :root { --bg: #0b0d12; --card: #141821; --line: #232a36; --text: #e6e9ef; --muted: #8b93a3; --accent: #7cc4ff; --ok: #5bd69b; --warn: #e8b04b; }
+  :root { --text: #e8ebf2; --muted: #9aa3b5; --accent: #9cd2ff; --line: rgba(255,255,255,.08); --glass: rgba(12,14,24,.52); --warn: #e8b04b; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 0 16px; }
-  .home { min-height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: min-height .2s; }
-  .home.top { min-height: 0; padding-top: 28px; }
-  h1 { font-weight: 600; letter-spacing: -.02em; font-size: 44px; margin: 0 0 22px; }
+  html, body { height: 100%; }
+  body { margin: 0; background: #04050a; color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; overflow-x: hidden; }
+  canvas.sky { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
+  #neb { filter: blur(34px) saturate(1.15); opacity: .95; }
+  #gal { filter: blur(1.4px); opacity: .85; }
+  #stars { filter: blur(.5px); }
+  .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.55) 100%); }
+  main { position: relative; max-width: 760px; margin: 0 auto; padding: 0 16px 60px; }
+  .home { min-height: 74vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: min-height .35s ease, padding .35s ease; }
+  .home.top { min-height: 0; padding-top: 26px; }
+  h1 { font-weight: 600; letter-spacing: -.02em; font-size: 52px; margin: 0 0 24px; text-shadow: 0 0 24px rgba(156,210,255,.35), 0 0 2px rgba(255,255,255,.6); }
   .top h1 { font-size: 22px; margin-bottom: 12px; align-self: flex-start; }
   form { width: 100%; }
-  input { width: 100%; padding: 15px 22px; border-radius: 28px; border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 17px; outline: none; }
-  input:focus { border-color: var(--accent); }
-  .meta { color: var(--muted); font-size: 13px; margin: 14px 4px; }
-  .r { border-bottom: 1px solid var(--line); padding: 14px 4px; }
+  input { width: 100%; padding: 15px 24px; border-radius: 30px; border: 1px solid rgba(255,255,255,.14); background: rgba(10,12,22,.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: var(--text); font-size: 17px; outline: none; box-shadow: 0 0 0 1px rgba(0,0,0,.2), 0 10px 40px rgba(0,0,0,.35); }
+  input::placeholder { color: #7f889b; }
+  input:focus { border-color: rgba(156,210,255,.6); box-shadow: 0 0 28px rgba(156,210,255,.18); }
+  .meta { color: var(--muted); font-size: 13px; margin: 14px 4px; text-shadow: 0 1px 2px #000; }
+  #out { display: grid; gap: 10px; }
+  .r { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
   .r h3 { margin: 0; font-size: 17px; font-weight: 600; }
-  .r .n { color: var(--muted); font-size: 13px; font-family: ui-monospace, monospace; word-break: break-all; }
-  .r p { margin: 6px 0 8px; color: #c5cad4; }
-  .b { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); margin-right: 6px; text-decoration: none; }
+  .r .n { color: var(--muted); font-size: 12.5px; font-family: ui-monospace, monospace; word-break: break-all; }
+  .r p { margin: 6px 0 9px; color: #cfd4de; }
+  .b { display: inline-block; font-size: 12px; padding: 1px 9px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); margin-right: 6px; text-decoration: none; background: rgba(255,255,255,.03); }
   a.b:hover { color: var(--accent); border-color: var(--accent); }
-  .proof { color: var(--warn); border-color: #4a3b1c; }
-  .dep { color: #ff8a8a; border-color: #4a2323; }
+  .proof { color: var(--warn); border-color: rgba(232,176,75,.3); }
+  .dep { color: #ff9a9a; border-color: rgba(255,120,120,.3); }
 </style>
 </head>
 <body>
+<canvas class="sky" id="neb"></canvas>
+<canvas class="sky" id="gal"></canvas>
+<canvas class="sky" id="stars"></canvas>
+<div class="vignette"></div>
 <main>
   <section class="home" id="home">
     <h1>commons</h1>
@@ -37,6 +49,81 @@
   <section id="out"></section>
 </main>
 <script>
+// ---------- sky: nebula dust, a distant spiral galaxy, twinkling stars ----------
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function fit(c) {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); return g;
+}
+function nebula() {
+  const g = fit(document.getElementById("neb")), r = rng(7), W = innerWidth, H = innerHeight;
+  const bg = g.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, "#05060d"); bg.addColorStop(1, "#090b16");
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const clouds = [
+    [.18, .30, .55, "70,90,170", .30], [.78, .22, .45, "40,110,140", .22], [.62, .72, .60, "110,60,130", .22],
+    [.30, .82, .40, "60,70,120", .20], [.92, .62, .35, "150,90,120", .12], [.48, .48, .70, "90,100,140", .10],
+  ];
+  for (const [x, y, s, rgb, a] of clouds) {
+    const R = Math.max(W, H) * s, gr = g.createRadialGradient(x * W, y * H, 0, x * W, y * H, R);
+    gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(.5, `rgba(${rgb},${a * .35})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  }
+  // dust: many soft, faint blobs (dark lanes and light wisps)
+  for (let i = 0; i < 420; i++) {
+    const x = r() * W, y = r() * H, R = 20 + r() * 120, dark = r() < .45;
+    const gr = g.createRadialGradient(x, y, 0, x, y, R);
+    gr.addColorStop(0, dark ? "rgba(0,0,0,.10)" : "rgba(180,190,220,.035)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill();
+  }
+}
+function galaxy() {
+  const g = fit(document.getElementById("gal")), r = rng(42), W = innerWidth, H = innerHeight;
+  const cx = W * .80, cy = H * .26, size = Math.min(W, H) * .22, tilt = .45, rot = -.5;
+  const core = g.createRadialGradient(cx, cy, 0, cx, cy, size * .35);
+  core.addColorStop(0, "rgba(255,235,210,.55)"); core.addColorStop(.4, "rgba(220,200,255,.15)"); core.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = core; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 3600; i++) {
+    const arm = i % 2, t = r() * 3.2, spread = (r() - .5) * .55 * (1 + t * .25);
+    const ang = t * 2.1 + arm * Math.PI + spread, rad = size * (.08 + t / 3.2) * (.9 + r() * .2);
+    let x = Math.cos(ang) * rad, y = Math.sin(ang) * rad * tilt;
+    const xr = x * Math.cos(rot) - y * Math.sin(rot), yr = x * Math.sin(rot) + y * Math.cos(rot);
+    const a = .10 + .35 * (1 - t / 3.2) * r(), blue = r() < .6;
+    g.fillStyle = blue ? `rgba(170,200,255,${a})` : `rgba(255,220,200,${a})`;
+    g.fillRect(cx + xr, cy + yr, r() < .1 ? 1.4 : .8, r() < .1 ? 1.4 : .8);
+  }
+}
+let stars = [];
+function starfield() {
+  const r = rng(99), W = innerWidth, H = innerHeight, n = Math.round(W * H / 1400);
+  stars = Array.from({ length: n }, () => {
+    const big = r() < .04;
+    return { x: r() * W, y: r() * H, s: big ? 1.1 + r() * 1.1 : .25 + r() * .8, a: .35 + r() * .6, tw: r() < .18 ? r() * 6.28 : -1,
+             c: r() < .15 ? "200,215,255" : r() < .1 ? "255,225,200" : "255,255,255", big };
+  });
+}
+function drawStars(t) {
+  const g = fit.cache || (fit.cache = document.getElementById("stars").getContext("2d"));
+  const c = document.getElementById("stars");
+  g.clearRect(0, 0, c.width, c.height);
+  for (const s of stars) {
+    const a = s.tw < 0 || reduce ? s.a : s.a * (.55 + .45 * Math.sin(t / 900 + s.tw));
+    if (s.big) {
+      const gr = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.s * 4);
+      gr.addColorStop(0, `rgba(${s.c},${a * .5})`); gr.addColorStop(1, `rgba(${s.c},0)`);
+      g.fillStyle = gr; g.beginPath(); g.arc(s.x, s.y, s.s * 4, 0, 7); g.fill();
+    }
+    g.fillStyle = `rgba(${s.c},${a})`; g.beginPath(); g.arc(s.x, s.y, s.s, 0, 7); g.fill();
+  }
+}
+function paint() { fit.cache = fit(document.getElementById("stars")); nebula(); galaxy(); starfield(); drawStars(performance.now()); }
+paint();
+let resizeT; addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(paint, 150); });
+if (!reduce) { let last = 0; const loop = (t) => { if (t - last > 66) { drawStars(t); last = t; } requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+
+// ---------- search ----------
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 async function run(q) {

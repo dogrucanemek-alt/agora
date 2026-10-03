@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 
 const PORT = Number(process.env.PORT ?? 4317);
 const catalog = JSON.parse(await readFile(new URL("../data/katalog.json", import.meta.url), "utf8"));
-const page = await readFile(new URL("../public/index.html", import.meta.url));
+const pageUrl = new URL("../public/index.html", import.meta.url);
 
 const docs = catalog.servers.map((s) => ({
   s,
@@ -37,7 +37,7 @@ function search(q, limit = 20) {
   return { total: hits.length, results: hits.slice(0, limit).map((h) => h.s) };
 }
 
-createServer((req, res) => {
+createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname === "/api/search") {
     const t0 = performance.now();
@@ -48,7 +48,7 @@ createServer((req, res) => {
   }
   if (url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(page);
+    res.end(await readFile(pageUrl)); // read per request: edits show without a restart
     return;
   }
   res.writeHead(404).end();
