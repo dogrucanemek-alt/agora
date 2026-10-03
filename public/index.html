@@ -8,11 +8,8 @@
   :root { --text: #e8ebf2; --muted: #9aa3b5; --accent: #9cd2ff; --line: rgba(255,255,255,.08); --glass: rgba(12,14,24,.52); --warn: #e8b04b; }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
-  body { margin: 0; background: #04050a; color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; overflow-x: hidden; }
-  canvas.sky { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; }
-  #neb { filter: blur(34px) saturate(1.15); opacity: .95; }
-  #gal { filter: blur(1.4px); opacity: .85; }
-  #stars { filter: blur(.5px); }
+  body { margin: 0; background: radial-gradient(ellipse at 70% 20%, #141a33 0%, #04050a 60%); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; overflow-x: hidden; }
+  #sky { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; filter: blur(.35px); }
   .vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.55) 100%); }
   main { position: relative; max-width: 760px; margin: 0 auto; padding: 0 16px 60px; }
   .home { min-height: 74vh; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: min-height .35s ease, padding .35s ease; }
@@ -36,9 +33,7 @@
 </style>
 </head>
 <body>
-<canvas class="sky" id="neb"></canvas>
-<canvas class="sky" id="gal"></canvas>
-<canvas class="sky" id="stars"></canvas>
+<canvas id="sky" aria-hidden="true"></canvas>
 <div class="vignette"></div>
 <main>
   <section class="home" id="home">
@@ -49,80 +44,6 @@
   <section id="out"></section>
 </main>
 <script>
-// ---------- sky: nebula dust, a distant spiral galaxy, twinkling stars ----------
-const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
-function fit(c) {
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
-  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); return g;
-}
-function nebula() {
-  const g = fit(document.getElementById("neb")), r = rng(7), W = innerWidth, H = innerHeight;
-  const bg = g.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#05060d"); bg.addColorStop(1, "#090b16");
-  g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const clouds = [
-    [.18, .30, .55, "70,90,170", .30], [.78, .22, .45, "40,110,140", .22], [.62, .72, .60, "110,60,130", .22],
-    [.30, .82, .40, "60,70,120", .20], [.92, .62, .35, "150,90,120", .12], [.48, .48, .70, "90,100,140", .10],
-  ];
-  for (const [x, y, s, rgb, a] of clouds) {
-    const R = Math.max(W, H) * s, gr = g.createRadialGradient(x * W, y * H, 0, x * W, y * H, R);
-    gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(.5, `rgba(${rgb},${a * .35})`); gr.addColorStop(1, `rgba(${rgb},0)`);
-    g.fillStyle = gr; g.fillRect(0, 0, W, H);
-  }
-  // dust: many soft, faint blobs (dark lanes and light wisps)
-  for (let i = 0; i < 420; i++) {
-    const x = r() * W, y = r() * H, R = 20 + r() * 120, dark = r() < .45;
-    const gr = g.createRadialGradient(x, y, 0, x, y, R);
-    gr.addColorStop(0, dark ? "rgba(0,0,0,.10)" : "rgba(180,190,220,.035)"); gr.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill();
-  }
-}
-function galaxy() {
-  const g = fit(document.getElementById("gal")), r = rng(42), W = innerWidth, H = innerHeight;
-  const cx = W * .80, cy = H * .26, size = Math.min(W, H) * .22, tilt = .45, rot = -.5;
-  const core = g.createRadialGradient(cx, cy, 0, cx, cy, size * .35);
-  core.addColorStop(0, "rgba(255,235,210,.55)"); core.addColorStop(.4, "rgba(220,200,255,.15)"); core.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = core; g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 3600; i++) {
-    const arm = i % 2, t = r() * 3.2, spread = (r() - .5) * .55 * (1 + t * .25);
-    const ang = t * 2.1 + arm * Math.PI + spread, rad = size * (.08 + t / 3.2) * (.9 + r() * .2);
-    let x = Math.cos(ang) * rad, y = Math.sin(ang) * rad * tilt;
-    const xr = x * Math.cos(rot) - y * Math.sin(rot), yr = x * Math.sin(rot) + y * Math.cos(rot);
-    const a = .10 + .35 * (1 - t / 3.2) * r(), blue = r() < .6;
-    g.fillStyle = blue ? `rgba(170,200,255,${a})` : `rgba(255,220,200,${a})`;
-    g.fillRect(cx + xr, cy + yr, r() < .1 ? 1.4 : .8, r() < .1 ? 1.4 : .8);
-  }
-}
-let stars = [];
-function starfield() {
-  const r = rng(99), W = innerWidth, H = innerHeight, n = Math.round(W * H / 1400);
-  stars = Array.from({ length: n }, () => {
-    const big = r() < .04;
-    return { x: r() * W, y: r() * H, s: big ? 1.1 + r() * 1.1 : .25 + r() * .8, a: .35 + r() * .6, tw: r() < .18 ? r() * 6.28 : -1,
-             c: r() < .15 ? "200,215,255" : r() < .1 ? "255,225,200" : "255,255,255", big };
-  });
-}
-function drawStars(t) {
-  const g = fit.cache || (fit.cache = document.getElementById("stars").getContext("2d"));
-  const c = document.getElementById("stars");
-  g.clearRect(0, 0, c.width, c.height);
-  for (const s of stars) {
-    const a = s.tw < 0 || reduce ? s.a : s.a * (.55 + .45 * Math.sin(t / 900 + s.tw));
-    if (s.big) {
-      const gr = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.s * 4);
-      gr.addColorStop(0, `rgba(${s.c},${a * .5})`); gr.addColorStop(1, `rgba(${s.c},0)`);
-      g.fillStyle = gr; g.beginPath(); g.arc(s.x, s.y, s.s * 4, 0, 7); g.fill();
-    }
-    g.fillStyle = `rgba(${s.c},${a})`; g.beginPath(); g.arc(s.x, s.y, s.s, 0, 7); g.fill();
-  }
-}
-function paint() { fit.cache = fit(document.getElementById("stars")); nebula(); galaxy(); starfield(); drawStars(performance.now()); }
-paint();
-let resizeT; addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(paint, 150); });
-if (!reduce) { let last = 0; const loop = (t) => { if (t - last > 66) { drawStars(t); last = t; } requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
-
 // ---------- search ----------
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -146,6 +67,10 @@ async function run(q) {
 $("f").addEventListener("submit", (e) => { e.preventDefault(); const q = $("q").value.trim(); if (q) run(q); });
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) { $("q").value = initial; run(initial); }
+</script>
+<script type="module">
+import { mountSky } from "/sky.js";
+try { mountSky(document.getElementById("sky")); } catch (e) { document.getElementById("sky").remove(); console.warn("3D sky off:", e); }
 </script>
 </body>
 </html>

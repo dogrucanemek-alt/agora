@@ -51,5 +51,15 @@ createServer(async (req, res) => {
     res.end(await readFile(pageUrl)); // read per request: edits show without a restart
     return;
   }
+  // Static files under public/: a fixed allow-list of extensions, no path escapes.
+  const m = /^\/((?:vendor\/)?[a-z0-9._-]+\.(js|txt))$/i.exec(url.pathname);
+  if (m && !m[1].includes("..")) {
+    try {
+      const body = await readFile(new URL(`../public/${m[1]}`, import.meta.url));
+      res.writeHead(200, { "content-type": m[2] === "js" ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8" });
+      res.end(body);
+      return;
+    } catch {}
+  }
   res.writeHead(404).end();
 }).listen(PORT, "127.0.0.1", () => console.log(`http://localhost:${PORT}  (${catalog.count} servers)`));
