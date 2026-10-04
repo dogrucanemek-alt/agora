@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -21,6 +22,19 @@ test("no unbacked superlatives in page text", () => {
       });
   }
   assert.deepEqual(hits, []);
+});
+
+// A source file that git ignores never reaches the repo or a git-triggered deploy, while a local build
+// still serves it. This happened: "data/" in .gitignore swallowed web/src/app/data/ and /data went 404.
+test("no source file under web/src is ignored by git", () => {
+  const src = files(SRC).map((f) => path.relative(ROOT, f).split(path.sep).join("/"));
+  let ignored = "";
+  try {
+    ignored = execFileSync("git", ["check-ignore", "--stdin"], { cwd: ROOT, input: src.join("\n"), encoding: "utf8" });
+  } catch (e) {
+    ignored = e.status === 1 ? "" : String(e.stdout ?? ""); // exit 1 = nothing ignored
+  }
+  assert.deepEqual(ignored.split("\n").filter(Boolean), []);
 });
 
 const DATA = path.join(ROOT, "data");
