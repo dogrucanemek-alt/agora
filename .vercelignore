@@ -1,0 +1,9 @@
+# Upload only what the site needs. data/ is outside git; the site reads three files from it.
+node_modules
+web/node_modules
+web/.next
+.vercel/output
+data/*
+!data/index.json
+!data/facts.json
+!data/reports.json
