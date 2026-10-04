@@ -52,6 +52,9 @@ export type Facts = {
   probe: { probed: number; answered: number; authRequired: number; paymentRequired: number; notAnswering: number; rateLimited: number; templated: number; byResult: Record<string, number> };
   flags: Record<string, number>;
   indexable: number;
+  massPublishers: { publisher: string; n: number }[];
+  protocols: Record<string, number>;
+  toolCounts: { servers: number; median: number | null; p90: number | null; max: number | null; zero: number; over50: number };
 };
 
 const DATA = path.join(process.cwd(), "..", "data");

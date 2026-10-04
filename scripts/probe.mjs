@@ -75,10 +75,15 @@ function classify(e) {
 async function probe(t) {
   const t0 = Date.now();
   const signal = AbortSignal.timeout(TIMEOUT_MS);
-  const fetchWithUa = (url, init = {}) => {
+  // Remember every HTTP status the server sent: when the SDK reacts to a 401 by starting OAuth discovery
+  // and that discovery fails, the error it throws no longer mentions the 401 we actually got.
+  const statuses = [];
+  const fetchWithUa = async (url, init = {}) => {
     const headers = new Headers(init.headers);
     headers.set("user-agent", UA);
-    return fetch(url, { ...init, headers, signal });
+    const res = await fetch(url, { ...init, headers, signal });
+    if (String(url).startsWith(t.url)) statuses.push(res.status);
+    return res;
   };
   // "auto": try the 2026 discover handshake first, fall back to the 2025 initialize handshake.
   const client = new Client({ name: "agora-probe", version: "0.1.0" }, { capabilities: {}, versionNegotiation: { mode: "auto" } });
@@ -95,7 +100,8 @@ async function probe(t) {
     }
     return { result: "ok", ms: Date.now() - t0, server: info, toolCount: tools.length, tools: tools.slice(0, 100), at: new Date().toISOString() };
   } catch (e) {
-    return { result: classify(e), ms: Date.now() - t0, detail: String(e?.message ?? e).slice(0, 160), at: new Date().toISOString() };
+    const result = statuses.some((x) => x === 401 || x === 403) ? "auth" : classify(e);
+    return { result, ms: Date.now() - t0, statuses, detail: String(e?.message ?? e).slice(0, 160), at: new Date().toISOString() };
   } finally {
     await Promise.race([client.close().catch(() => {}), new Promise((r) => setTimeout(r, 2000))]);
   }

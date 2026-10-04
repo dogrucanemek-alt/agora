@@ -26,7 +26,7 @@ export async function GET(_req: Request, { params }: Ctx) {
     if (!l) [value, color] = ["runs locally", COLORS.none];
     else if (l.cls === "answers") [value, color] = [l.toolCount != null ? `answers · ${l.toolCount} tools` : "answers", COLORS.ok];
     else if (l.cls === "gated") [value, color] = [l.result === "http_402" ? "answers · paid" : "answers · sign-in", COLORS.auth];
-    else if (l.cls === "down") [value, color] = ["not answering", COLORS.bad];
+    else if (l.cls === "down") [value, color] = ["handshake fails", COLORS.bad];
     else [value, color] = ["unknown", COLORS.none];
     if (found.proofs.works > 0) value += ` · ${found.proofs.works} signed`;
   }

@@ -126,6 +126,17 @@ const facts = {
     ["test_like", "ephemeral_host", "clone_host", "mass_publisher", "repo_missing", "archived", "thin_description", "not_answering", "deprecated"].map((f) => [f, count((s) => s.flags.includes(f))]),
   ),
   indexable: count((s) => s.indexable),
+  // Among servers that completed the handshake: which protocol revision they settled on, and tool counts.
+  protocols: Object.fromEntries(
+    Object.entries(
+      probed.filter((s) => LIVE_OK.has(s.live.result)).reduce((m, s) => ((m[s.live.protocol ?? "unknown"] = (m[s.live.protocol ?? "unknown"] ?? 0) + 1), m), {}),
+    ).sort((a, b) => b[1] - a[1]),
+  ),
+  toolCounts: (() => {
+    const c = probed.filter((s) => s.live.toolCount != null).map((s) => s.live.toolCount).sort((a, b) => a - b);
+    const q = (p) => (c.length ? c[Math.min(c.length - 1, Math.floor(p * c.length))] : null);
+    return { servers: c.length, median: q(0.5), p90: q(0.9), max: c.at(-1) ?? null, zero: c.filter((x) => x === 0).length, over50: c.filter((x) => x > 50).length };
+  })(),
   busyHosts: [...perHost].filter(([, n]) => n > BULK_HOST).sort((a, b) => b[1] - a[1]).map(([host, n]) => ({ host, n, clone: cloneHost(host) })),
   massPublishers: [...perPublisher].filter(([, n]) => n > MASS_PUBLISHER).sort((a, b) => b[1] - a[1]).map(([publisher, n]) => ({ publisher, n })),
 };

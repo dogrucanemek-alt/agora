@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${BRAND}: search MCP servers by what actually works`, template: `%s` },
-  description: "Search every server in the official MCP registry. Each one is checked: does it answer, what tools does it list, is its repository alive. Open data.",
+  description: "Search every server in the official MCP registry. Remote servers are checked: do they answer the MCP handshake, which tools do they list, is the repository alive. Open data.",
   applicationName: BRAND,
   alternates: { types: { "text/plain": "/llms.txt" } },
 };

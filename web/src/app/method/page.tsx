@@ -36,11 +36,11 @@ export default async function Method() {
           <li>
             Requests carry the user agent <code>agora-probe/0.1 (+{SITE_URL}/probe)</code>.
           </li>
-          <li>A server gets 12 seconds. Failures for a network reason are checked a second time before they are counted.</li>
+          <li>A server gets 12 seconds. Failures for a network reason are checked again before they are counted.</li>
         </ul>
         <p>
           Last check: {day(f?.probeUpdatedAt)}. Of {n(f?.probe.probed)} endpoints checked, {n(f?.probe.answered)} completed the handshake,{" "}
-          {n(f?.probe.authRequired)} asked for sign-in, {n(f?.probe.paymentRequired)} asked for payment and {n(f?.probe.notAnswering)} did not answer.{" "}
+          {n(f?.probe.authRequired)} asked for sign-in, {n(f?.probe.paymentRequired)} asked for payment and {n(f?.probe.notAnswering)} did not complete the handshake (no response, an HTTP error, or a reply that is not valid MCP).{" "}
           {n(f?.probe.rateLimited)} rate-limited us and are counted as unknown.
         </p>
         <p>

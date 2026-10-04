@@ -47,5 +47,5 @@ export const FLAG_TEXT: Record<string, string> = {
   repo_missing: "The linked GitHub repository does not resolve (deleted, renamed or private).",
   archived: "The GitHub repository is archived.",
   thin_description: "The registry description is under 40 characters.",
-  not_answering: "The endpoint did not answer our last check.",
+  not_answering: "The endpoint did not complete the MCP handshake in our last check.",
 };

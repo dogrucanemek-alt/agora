@@ -23,7 +23,7 @@ async function answerFor(slug: string) {
   const when = day(facts?.probeUpdatedAt);
   const answer =
     `Of ${n(st.matched)} servers in the official MCP registry that mention ${t.label}, we checked ${n(st.checked)} remote endpoints on ${when}: ` +
-    `${n(st.answers)} answered the MCP handshake, ${n(st.gated)} answered but asked for sign-in or payment first, and ${n(st.down)} did not answer. ` +
+    `${n(st.answers)} answered the MCP handshake, ${n(st.gated)} answered but asked for sign-in or payment first, and ${n(st.down)} did not complete it. ` +
     `${n(st.local)} run on your own machine and cannot be checked from outside.`;
   const limit =
     "What this does not tell you: whether a server is safe, or whether its tools do what they say. An answer to the handshake proves the endpoint is up, nothing more.";

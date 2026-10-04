@@ -14,7 +14,7 @@ export async function GET() {
     "",
     "## Current numbers",
     `- Servers in the official MCP registry: ${n(f?.servers)} (read ${day(f?.catalogFetchedAt)})`,
-    `- Remote endpoints checked: ${n(f?.probe.probed)} on ${day(f?.probeUpdatedAt)}; completed the handshake: ${n(f?.probe.answered)}; asked for sign-in: ${n(f?.probe.authRequired)}; asked for payment: ${n(f?.probe.paymentRequired)}; did not answer: ${n(f?.probe.notAnswering)}`,
+    `- Remote endpoints checked: ${n(f?.probe.probed)} on ${day(f?.probeUpdatedAt)}; completed the handshake: ${n(f?.probe.answered)}; asked for sign-in: ${n(f?.probe.authRequired)}; asked for payment: ${n(f?.probe.paymentRequired)}; did not complete the handshake: ${n(f?.probe.notAnswering)}`,
     `- Linked GitHub repositories that no longer resolve: ${n(f?.repos.missing)} of ${n(f?.repos.distinct)}`,
     "",
     "## What a check does not prove",

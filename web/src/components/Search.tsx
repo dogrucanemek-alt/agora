@@ -69,7 +69,7 @@ export default function Search({ tagline }: { tagline?: string }) {
             {s.status === "deprecated" && <span className="b dep">deprecated</span>}
             {s.live && liveLabel(s.live).tone === "ok" && <span className="b proof ok">answers</span>}
             {s.live && liveLabel(s.live).tone === "auth" && <span className="b">answers · gated</span>}
-            {s.live && liveLabel(s.live).tone === "bad" && <span className="b dep">not answering</span>}
+            {s.live && liveLabel(s.live).tone === "bad" && <span className="b dep">handshake fails</span>}
             {s.gh && !("missing" in s.gh) && s.gh.stars > 0 && <span className="b">★ {s.gh.stars.toLocaleString("en-US")}</span>}
             {s.proofs.count > 0 ? (
               <span className="b proof ok" title="Signed by the reporting operator's gate key. Shows the call went through that gate; the server link is the reporter's claim.">
