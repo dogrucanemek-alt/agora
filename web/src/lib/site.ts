@@ -7,6 +7,8 @@ export const ORG = "openforallofus";
 export const BRAND = `${PRODUCT} by ${ORG}`;
 export const CONTACT = "hello@openforallofus.com";
 export const REPO = "https://github.com/dogrucanemek-alt/agora";
+// Archived, citable snapshot of the measurements (Zenodo). Each archived snapshot gets its own DOI.
+export const SNAPSHOT = { doi: "10.5281/zenodo.23137127", date: "2026-10-04" };
 export const REGISTRY_UI = "https://registry.modelcontextprotocol.io";
 
 export const toolPath = (name: string) => "/tools/" + name.split("/").map(encodeURIComponent).join("/");

@@ -1,5 +1,5 @@
 import { getFacts } from "@/lib/store";
-import { BRAND, SITE_URL, day, n } from "@/lib/site";
+import { BRAND, SITE_URL, SNAPSHOT, day, n } from "@/lib/site";
 import { TOPICS } from "@/lib/topics";
 
 // llms.txt: a plain summary for language models, with every count read from data/facts.json.
@@ -24,7 +24,7 @@ export async function GET() {
     "",
     "## Pages",
     `- [How we check](${SITE_URL}/method): sources, the handshake check, what is indexed`,
-    `- [Data](${SITE_URL}/data): the measurements as CSV`,
+    `- [Data](${SITE_URL}/data): the measurements as CSV; archived snapshot doi:${SNAPSHOT.doi} (${SNAPSHOT.date})`,
     `- [For agents](${SITE_URL}/agents): MCP endpoint ${SITE_URL}/api/mcp with search_tools, get_tool, submit_report`,
     `- [State of the MCP registry](${SITE_URL}/report): findings from the latest check`,
     `- [About](${SITE_URL}/about): who runs Agora, contact, privacy`,

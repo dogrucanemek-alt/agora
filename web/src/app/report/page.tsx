@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer, Header } from "@/components/Chrome";
 import { getFacts } from "@/lib/store";
-import { BRAND, ORG, SITE_URL, day, n, pct } from "@/lib/site";
+import { BRAND, ORG, SITE_URL, SNAPSHOT, day, n, pct } from "@/lib/site";
 
 const month = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }) : "");
 
@@ -132,7 +132,8 @@ export default async function Report() {
           from outside and are not in the percentages. A failed check is a snapshot: a server can be down for an hour.
         </p>
         <p>
-          <Link href="/method">Method</Link> · <Link href="/data">Data (CSV, CC BY 4.0)</Link> · Registry read {day(f.catalogFetchedAt)}, GitHub read{" "}
+          <Link href="/method">Method</Link> · <Link href="/data">Data (CSV, CC BY 4.0)</Link> · Cite:{" "}
+          <a href={`https://doi.org/${SNAPSHOT.doi}`}>doi:{SNAPSHOT.doi}</a> · Registry read {day(f.catalogFetchedAt)}, GitHub read{" "}
           {day(f.githubFetchedAt)}, endpoints checked {day(f.probeUpdatedAt)}.
         </p>
       </main>

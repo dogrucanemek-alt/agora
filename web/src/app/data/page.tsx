@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer, Header } from "@/components/Chrome";
 import { getFacts } from "@/lib/store";
-import { BRAND, ORG, SITE_URL, day, n, pct } from "@/lib/site";
+import { BRAND, ORG, SITE_URL, SNAPSHOT, day, n, pct } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `MCP server measurements, open data (CSV) | ${BRAND}`,
@@ -24,6 +24,7 @@ export default async function Data() {
     isBasedOn: f?.registry,
     dateModified: f?.probeUpdatedAt ?? undefined,
     distribution: [{ "@type": "DataDownload", encodingFormat: "text/csv", contentUrl: `${SITE_URL}/data/servers.csv` }],
+    sameAs: `https://doi.org/${SNAPSHOT.doi}`,
   };
   return (
     <>
@@ -39,6 +40,10 @@ export default async function Data() {
           <a className="b" href="/data/servers.csv">
             Download CSV
           </a>
+        </p>
+
+        <p className="muted">
+          Archived snapshot of {SNAPSHOT.date}, citable: <a href={`https://doi.org/${SNAPSHOT.doi}`}>doi:{SNAPSHOT.doi}</a> (Zenodo).
         </p>
 
         <h2>The registry today</h2>
