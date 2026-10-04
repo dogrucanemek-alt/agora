@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.openforallofus/agora",
+  "title": "Agora by openforallofus",
+  "description": "Search MCP servers ranked by measured handshake checks, tool lists and signed reports.",
+  "version": "0.1.0",
+  "websiteUrl": "https://openforallofus.com",
+  "repository": {
+    "url": "https://github.com/dogrucanemek-alt/agora",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://openforallofus.com/api/mcp"
+    }
+  ]
+}

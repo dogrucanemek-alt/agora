@@ -1,0 +1,67 @@
+name: refresh data
+
+# Weekly: read the registry, GitHub signals and the handshake check again, publish the result as the
+# "data-latest" release, and rebuild the site from it.
+
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      UV_THREADPOOL_SIZE: "64"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: last published facts (for the sanity check)
+        run: gh release download data-latest --pattern facts.json --output previous-facts.json || echo '{}' > previous-facts.json
+
+      - run: npm run catalog
+      - run: node scripts/github.mjs
+      - run: node scripts/probe.mjs --fresh
+      - run: node scripts/probe.mjs --retry
+      - run: node scripts/probe.mjs --retry
+      - run: node scripts/build-index.mjs
+      - run: npm test
+
+      - name: refuse a run that looks like our own network failing
+        run: |
+          node -e '
+            const prev = require("./previous-facts.json"), next = require("./data/facts.json");
+            const a = prev.probe?.answered, b = next.probe.answered;
+            console.log(`answered: previous ${a ?? "none"}, now ${b}`);
+            if (a && b < a * 0.7) { console.error("answered dropped by more than 30%; not publishing"); process.exit(1); }
+            if (next.servers < 1000) { console.error("catalog looks empty; not publishing"); process.exit(1); }
+          '
+
+      - name: publish data-latest
+        run: |
+          gh release view data-latest >/dev/null 2>&1 || gh release create data-latest --title "Data (latest)" --notes "Measurements behind openforallofus.com. Replaced weekly. CC BY 4.0." --latest=false
+          gh release upload data-latest data/index.json data/facts.json --clobber
+
+      - name: rebuild the site
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "no deploy hook configured"; exit 1; fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+
+      - name: tell IndexNow
+        run: node scripts/indexnow.mjs || echo "IndexNow ping failed; the next run will try again"

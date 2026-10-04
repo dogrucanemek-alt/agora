@@ -2,13 +2,13 @@
 // One GraphQL query asks for 100 repositories, so the whole catalog is a few hundred requests.
 // A repository GitHub cannot resolve (deleted, renamed away, made private) is recorded as missing.
 //
-// The token comes from the GitHub CLI's stored login and stays in memory; it is never printed.
+// The token comes from GH_TOKEN (CI) or the GitHub CLI's stored login, and stays in memory; it is never printed.
 // Output data/github.json. Usage: node scripts/github.mjs
 
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 
-const token = execFileSync("gh", ["auth", "token"], { encoding: "utf8" }).trim();
+const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || execFileSync("gh", ["auth", "token"], { encoding: "utf8" }).trim();
 const catalog = JSON.parse(await readFile(new URL("../data/katalog.json", import.meta.url), "utf8"));
 
 const repos = [...new Set(catalog.servers.map((s) => s.repo).filter(Boolean).map((r) => r.toLowerCase()))];
