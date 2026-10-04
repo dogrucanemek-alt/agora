@@ -115,17 +115,23 @@ export const store = () => (state ??= load());
 
 export async function addReport(entry: ReportEntry): Promise<void> {
   const s = await store();
+  // write first: if the disk refuses (a read-only deployment), memory must not claim the report was kept
+  await writeFile(path.join(DATA, "reports.json"), JSON.stringify([...s.reports, entry], null, 1));
   s.reports.push(entry);
   s.seen.add(entry.receipt);
-  await writeFile(path.join(DATA, "reports.json"), JSON.stringify(s.reports, null, 1));
 }
 
 // The one write path for reports; the REST route and the MCP tool both go through here.
 export async function fileReport(input: ReportInput | null) {
   const s = await store();
   const r = checkReport(input, { knownServer: (n) => s.byName.has(n), seenReceipt: (id) => s.seen.has(id) });
-  if (r.ok) await addReport(r.entry);
-  return r;
+  if (!r.ok) return { ...r, stored: false as const };
+  try {
+    await addReport(r.entry);
+  } catch {
+    return { ok: false as const, stored: false as const, closed: true as const, problems: ["The report verified, but this deployment cannot store reports yet. Nothing was kept."] };
+  }
+  return { ...r, stored: true as const };
 }
 
 const proofsOf = (p: ReportEntry[]) => ({ count: p.length, works: p.filter((x) => x.verdict === "works").length, operators: new Set(p.map((x) => x.operator)).size });

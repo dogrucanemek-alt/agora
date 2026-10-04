@@ -5,6 +5,8 @@ export const SITE_URL = (process.env.SITE_URL ?? "https://openforallofus.com").r
 export const PRODUCT = "Agora";
 export const ORG = "openforallofus";
 export const BRAND = `${PRODUCT} by ${ORG}`;
+export const CONTACT = "hello@openforallofus.com";
+export const REPO = "https://github.com/dogrucanemek-alt/agora";
 export const REGISTRY_UI = "https://registry.modelcontextprotocol.io";
 
 export const toolPath = (name: string) => "/tools/" + name.split("/").map(encodeURIComponent).join("/");

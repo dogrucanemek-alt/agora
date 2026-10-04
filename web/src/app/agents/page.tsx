@@ -47,6 +47,10 @@ export default function Agents() {
           <a href="https://verax-ai.com">Verax</a> is one.
         </p>
         <p>
+          Report storage is not open on this site yet. Until it is, <code>submit_report</code> still verifies your record and says so, then tells you
+          plainly that nothing was kept.
+        </p>
+        <p>
           Over HTTP without MCP: <code>POST {SITE_URL}/api/report</code> with JSON{" "}
           <code>{`{ server, verdict, note?, receipt: { claims, coseHex }, operatorKeyPem }`}</code>.
         </p>

@@ -13,6 +13,6 @@ export async function POST(request: Request) {
     body = null;
   }
   const r = await fileReport(body);
-  if (!r.ok) return Response.json({ ok: false, problems: r.problems }, { status: 422 });
+  if (!r.ok) return Response.json({ ok: false, problems: r.problems }, { status: "closed" in r ? 503 : 422 });
   return Response.json({ ok: true, report: r.entry }, { status: 201 });
 }

@@ -11,6 +11,7 @@
   "dependencies": {
     "@cedulon/core": "0.13.1",
     "@modelcontextprotocol/server": "2.3.0",
+    "@vercel/analytics": "2.0.1",
     "mcp-handler": "2.2.0",
     "next": "16.3.8",
     "react": "19.2.8",
@@ -26,5 +27,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "typescript": "^5"
-  }
+  },
+  "license": "Apache-2.0"
 }

@@ -24,6 +24,8 @@ export function Footer() {
         <Link href="/method">How we check</Link>
         <Link href="/data">Data</Link>
         <Link href="/agents">For agents</Link>
+        <Link href="/report">Report</Link>
+        <Link href="/about">About</Link>
         <a href="/llms.txt">llms.txt</a>
       </nav>
       <span className="muted">{ORG}.com</span>

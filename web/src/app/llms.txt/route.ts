@@ -26,6 +26,8 @@ export async function GET() {
     `- [How we check](${SITE_URL}/method): sources, the handshake check, what is indexed`,
     `- [Data](${SITE_URL}/data): the measurements as CSV`,
     `- [For agents](${SITE_URL}/agents): MCP endpoint ${SITE_URL}/api/mcp with search_tools, get_tool, submit_report`,
+    `- [State of the MCP registry](${SITE_URL}/report): findings from the latest check`,
+    `- [About](${SITE_URL}/about): who runs Agora, contact, privacy`,
     `- [Topics](${SITE_URL}/topics)`,
     ...TOPICS.map((t) => `  - [${t.label} MCP servers](${SITE_URL}/topics/${t.slug})`),
     "",

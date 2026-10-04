@@ -11,5 +11,6 @@
   "dependencies": {
     "@cedulon/core": "0.13.1",
     "@modelcontextprotocol/client": "2.3.0"
-  }
+  },
+  "license": "Apache-2.0"
 }

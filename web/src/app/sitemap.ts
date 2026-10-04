@@ -14,6 +14,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/method`, lastModified: checked },
     { url: `${SITE_URL}/data`, lastModified: checked },
     { url: `${SITE_URL}/agents` },
+    { url: `${SITE_URL}/report`, lastModified: checked },
+    { url: `${SITE_URL}/about` },
     ...tools.map((t) => ({ url: SITE_URL + toolPath(t.name), lastModified: checked ?? (t.updatedAt ? new Date(t.updatedAt) : undefined) })),
   ];
 }

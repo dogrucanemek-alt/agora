@@ -10,6 +10,11 @@ import { BRAND, FLAG_TEXT, clip, SITE_URL, day, liveLabel, n, registryRecordUrl,
 
 type Props = { params: Promise<{ slug: string[] }> };
 
+// Rendered on first visit and kept until the next deploy: the data only changes when we redeploy.
+export function generateStaticParams() {
+  return [];
+}
+
 const nameOf = async (params: Props["params"]) => (await params).slug.map(decodeURIComponent).join("/");
 const display = (s: Server) => s.title || s.name.split("/").pop() || s.name;
 
@@ -24,7 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: `${s.description.slice(0, 150)} ${status}.${tools}`.trim(),
     alternates: { canonical: SITE_URL + toolPath(s.name) },
     robots: { index: !!s.indexable, follow: true },
-    openGraph: { title: `${display(s)} MCP server`, description: s.description.slice(0, 200), url: SITE_URL + toolPath(s.name), siteName: BRAND, type: "website" },
+    openGraph: { title: `${display(s)} MCP server`, description: s.description.slice(0, 200), url: SITE_URL + toolPath(s.name), siteName: BRAND, type: "website", images: ["/opengraph-image"] },
+    twitter: { card: "summary_large_image", images: ["/opengraph-image"] },
   };
 }
 

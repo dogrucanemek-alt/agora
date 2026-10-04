@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { checkReport, keyId } from "../web/src/lib/report.ts";
 
-// Verax test vectors v1 (Apache-2.0): a real signed ledger and its record key.
-const V = new URL("../../verax/test-vectors/v1/valid-full/", import.meta.url);
-const records = readFileSync(new URL("ledger/decisions.jsonl", V), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-const pem = readFileSync(new URL("pins/record-key.pem", V), "utf8");
+// Verax test vectors v1 (Apache-2.0, see fixtures/verax-v1/SOURCE.txt): a real signed ledger and its record key.
+const V = new URL("./fixtures/verax-v1/", import.meta.url);
+const records = readFileSync(new URL("decisions.jsonl", V), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+const pem = readFileSync(new URL("record-key.pem", V), "utf8");
 const allow = records.find((r) => r.claims.decision === "allow" && r.claims.decider === "verax-proxy");
 const deny = records.find((r) => r.claims.decision === "deny");
 
@@ -28,7 +28,7 @@ test("a changed claim breaks the signature", () => {
 });
 
 test("a different key does not verify", () => {
-  const other = readFileSync(new URL("pins/witness-key.pem", V), "utf8");
+  const other = readFileSync(new URL("witness-key.pem", V), "utf8");
   assert.match(checkReport({ ...base(), operatorKeyPem: other }, ctx()).problems[0], /does not verify/);
 });
 

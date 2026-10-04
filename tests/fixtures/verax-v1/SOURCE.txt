@@ -1,0 +1,2 @@
+Test vectors copied from https://github.com/verax-ai/verax (test-vectors/v1/valid-full), Apache-2.0.
+Public keys and a signed demo ledger only; no private keys.

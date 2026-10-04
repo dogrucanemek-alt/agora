@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer, Header } from "@/components/Chrome";
 import { getFacts } from "@/lib/store";
-import { BRAND, SITE_URL, day, n } from "@/lib/site";
+import { BRAND, CONTACT, REPO, SITE_URL, day, n } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `How we check MCP servers | ${BRAND}`,
@@ -71,7 +71,7 @@ export default async function Method() {
 
         <h2 id="opt-out">If you run a server</h2>
         <p>
-          To stop the check against your endpoint, or to correct anything on your page, write to <a href="mailto:hello@openforallofus.com">hello@openforallofus.com</a>.
+          To stop the check against your endpoint, or to correct anything on your page, write to <a href={`mailto:${CONTACT}`}>{CONTACT}</a> or open an issue on <a href={REPO}>GitHub</a>.
         </p>
       </main>
       <Footer />
