@@ -6,9 +6,10 @@
     "catalog": "node scripts/katalog.mjs",
     "dev": "npm --prefix web run dev",
     "build": "npm --prefix web run build",
-    "test": "node --test tests/report.test.mjs"
+    "test": "node --test tests/report.test.mjs tests/site.test.mjs"
   },
   "dependencies": {
-    "@cedulon/core": "0.13.1"
+    "@cedulon/core": "0.13.1",
+    "@modelcontextprotocol/client": "2.3.0"
   }
 }

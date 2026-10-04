@@ -41,3 +41,60 @@ a.b:hover { color: var(--accent); border-color: var(--accent); }
 .proof { color: var(--warn); border-color: rgba(232, 176, 75, 0.3); }
 .proof.ok { color: #6fe0a4; border-color: rgba(111, 224, 164, 0.35); background: rgba(111, 224, 164, 0.06); }
 .dep { color: #ff9a9a; border-color: rgba(255, 120, 120, 0.3); }
+
+/* static starfield for content pages (the 3D sky stays on the home page only) */
+.stars { position: fixed; inset: 0; pointer-events: none; z-index: -1;
+  background:
+    radial-gradient(1px 1px at 12% 18%, #fff8 50%, transparent 51%), radial-gradient(1px 1px at 73% 12%, #fff6 50%, transparent 51%),
+    radial-gradient(1px 1px at 38% 66%, #fff5 50%, transparent 51%), radial-gradient(1.5px 1.5px at 86% 74%, #cfe6ff88 50%, transparent 51%),
+    radial-gradient(1px 1px at 55% 35%, #fff4 50%, transparent 51%), radial-gradient(1px 1px at 22% 88%, #fff5 50%, transparent 51%),
+    radial-gradient(ellipse at 70% 20%, #141a33 0%, #04050a 60%);
+  background-size: 420px 420px, 380px 380px, 460px 460px, 520px 520px, 300px 300px, 340px 340px, 100% 100%; }
+.hdr { max-width: 760px; margin: 0 auto; padding: 18px 16px 6px; display: flex; gap: 16px; align-items: center; }
+.hdr .logo { color: var(--text); text-decoration: none; font-weight: 600; font-size: 20px; text-shadow: 0 0 18px rgba(156, 210, 255, 0.35); }
+.hdr form { flex: 1; }
+.hdr input { padding: 9px 16px; font-size: 14px; }
+.ftr { max-width: 760px; margin: 0 auto; padding: 28px 16px 40px; color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px 18px; border-top: 1px solid var(--line); }
+.ftr nav { display: flex; gap: 14px; flex-wrap: wrap; }
+.ftr a, .tool a { color: var(--accent); text-decoration: none; }
+.ftr a:hover, .tool a:hover { text-decoration: underline; }
+.muted { color: var(--muted); }
+.tool h1 { font-size: 34px; margin: 10px 0 4px; text-shadow: none; }
+.tool h2 { font-size: 17px; margin: 30px 0 10px; color: #dfe6f3; }
+.tool .n { color: var(--muted); font: 12.5px ui-monospace, monospace; word-break: break-all; }
+.tool .lede { font-size: 17px; color: #d6dbe6; margin: 14px 0 2px; }
+.tool .attrib { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+.crumbs { color: var(--muted); font-size: 13px; margin-top: 12px; }
+.status { border-radius: 12px; padding: 10px 14px; border: 1px solid var(--line); background: var(--glass); }
+.status.ok { border-color: rgba(111, 224, 164, 0.4); color: #bff2d6; }
+.status.auth { border-color: rgba(156, 210, 255, 0.4); color: #d4ebff; }
+.status.bad { border-color: rgba(255, 120, 120, 0.4); color: #ffd0d0; }
+table.facts { width: 100%; border-collapse: collapse; background: var(--glass); border-radius: 12px; overflow: hidden; font-size: 14px; }
+.facts th, .facts td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.facts th { color: var(--muted); font-weight: 500; white-space: nowrap; width: 1%; }
+.facts td { word-break: break-word; }
+.facts .src { font-size: 12px; color: var(--muted); white-space: nowrap; width: 1%; }
+.toollist { font: 12.5px ui-monospace, monospace; color: #cfd4de; }
+code { font: 13px ui-monospace, monospace; }
+pre { background: rgba(0, 0, 0, 0.45); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; }
+.flags, .reports, .near { padding-left: 18px; }
+.flags li, .reports li, .near li { margin: 5px 0; }
+.note { color: #cfd4de; margin: 3px 0 0; font-style: italic; }
+.agentnote { margin-top: 30px; font-size: 13px; word-break: break-word; }
+.r h3 a { color: var(--text); text-decoration: none; }
+.r h3 a:hover { color: var(--accent); }
+@media (max-width: 560px) {
+  .facts tr { display: grid; grid-template-columns: 1fr; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .facts th, .facts td { border: 0; padding: 2px 12px; width: auto; }
+  .facts .src { white-space: normal; width: auto; }
+  .tool h1 { font-size: 27px; }
+}
+.about { position: relative; max-width: 760px; margin: 40px auto 0; padding: 0 16px; }
+.about p { color: #cfd4de; }
+.topics { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.topics a { display: inline-block; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--glass); }
+.topiclist { list-style: none; padding: 0; }
+.prose ul { padding-left: 20px; }
+.prose li { margin: 4px 0; }
+.ftr { position: relative; }
+.tagline { color: #c9d3e6; font-size: 15px; margin: 16px 0 0; text-align: center; text-shadow: 0 1px 3px #000; }
