@@ -7,6 +7,7 @@
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import { fileReport, getServer, search } from "@/lib/store";
+import { withEffectReceipts } from "@/lib/effect-receipt";
 
 const json = (value: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(value, null, 1) }],
@@ -94,4 +95,7 @@ const handler = createMcpHandler(
   { serverInfo: { name: "agora", version: "0.1.0" } },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+// A tools/call that names the caller's decision gets a signed effect receipt (see lib/effect-receipt.ts).
+const withReceipts = withEffectReceipts(handler);
+
+export { handler as GET, withReceipts as POST, handler as DELETE };

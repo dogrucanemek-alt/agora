@@ -6,10 +6,11 @@
     "catalog": "node scripts/katalog.mjs",
     "dev": "npm --prefix web run dev",
     "build": "npm --prefix web run build",
-    "test": "node --test tests/report.test.mjs tests/site.test.mjs"
+    "test": "node --test tests/report.test.mjs tests/site.test.mjs tests/effect-receipt.test.mjs"
   },
   "dependencies": {
     "@cedulon/core": "0.13.1",
+    "@cedulon/effect-extract": "0.13.1",
     "@modelcontextprotocol/client": "2.3.0"
   },
   "license": "Apache-2.0"
