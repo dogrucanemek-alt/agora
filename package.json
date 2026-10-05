@@ -6,7 +6,7 @@
     "catalog": "node scripts/katalog.mjs",
     "dev": "npm --prefix web run dev",
     "build": "npm --prefix web run build",
-    "test": "node --test tests/report.test.mjs tests/site.test.mjs tests/effect-receipt.test.mjs"
+    "test": "node --test tests/report.test.mjs tests/site.test.mjs tests/effect-receipt.test.mjs tests/packages.test.mjs"
   },
   "dependencies": {
     "@cedulon/core": "0.13.1",

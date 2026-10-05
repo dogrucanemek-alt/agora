@@ -35,6 +35,7 @@ jobs:
 
       - run: npm run catalog
       - run: node scripts/github.mjs
+      - run: node scripts/packages.mjs
       - run: node scripts/probe.mjs --fresh
       - run: node scripts/probe.mjs --retry
       - run: node scripts/probe.mjs --retry

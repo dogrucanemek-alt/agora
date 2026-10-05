@@ -18,7 +18,7 @@ export default async function Method() {
       <Header />
       <main className="tool prose">
         <h1>How we check</h1>
-        <p className="lede">Every number on this site comes from one of four sources, and every page says which one and when it was read.</p>
+        <p className="lede">Every number on this site comes from one of six sources, and every page says which one and when it was read.</p>
 
         <h2>1. The official MCP registry</h2>
         <p>
@@ -54,7 +54,25 @@ export default async function Method() {
           {day(f?.githubFetchedAt)}. {n(f?.repos.missing)} of {n(f?.repos.distinct)} linked repositories did not resolve.
         </p>
 
-        <h2>4. Signed reports</h2>
+        <h2>4. npm</h2>
+        <p>
+          For listed npm packages we read existence (200 or 404), the latest version and its deprecation flag from the
+          <a href="https://registry.npmjs.org/"> npm registry</a>, using its abbreviated metadata. We show the latest version&apos;s
+          publish time or modified time when supplied; the abbreviated response may omit both. The npm downloads API supplies
+          last-week downloads. Downloads include bots and CI and do not affect ranking. Package existence does not prove a server runs or is safe.
+        </p>
+        <h2>5. PyPI</h2>
+        <p>
+          The <a href="https://pypi.org/">PyPI</a> JSON API supplies existence, latest version, the latest release&apos;s upload time
+          and whether all its files are yanked. <a href="https://pypistats.org/">PyPI Stats</a> supplies last-week downloads when available.
+          We throttle requests and back off on rate limits; missing download counts are unknown. Downloads include bots and CI.
+          These signals do not prove safety, correctness or use by people, and do not affect ranking.
+        </p>
+        {f?.packages && <p>Packages read {day(f.packages.fetchedAt)}: {n(f.packages.npm.checked)} of {n(f.packages.npm.listed)} listed npm packages
+          and {n(f.packages.pypi.checked)} of {n(f.packages.pypi.listed)} listed PyPI packages checked. Counts use distinct package names;
+          PyPI spelling aliases are normalized.{f.packages.sample != null && " This is a partial sample."}</p>}
+
+        <h2>6. Signed reports</h2>
         <p>
           Anyone who runs a gate that signs its decisions can report that a server works, is broken or is unsafe, and attach the signed record. We verify
           the signature against the reporter&apos;s public key with the open <a href="https://www.npmjs.com/package/@cedulon/core">@cedulon/core</a>{" "}

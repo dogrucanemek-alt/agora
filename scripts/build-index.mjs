@@ -1,11 +1,14 @@
-// Join the three sources into what the site serves:
+// Join the measured sources into what the site serves:
 //   data/katalog.json  (official MCP registry)  +  data/github.json  (repo signals)  +  data/probe.json  (liveness)
+//   + data/packages.json (npm and PyPI metadata / optional downloads)
 // → data/index.json  one record per server, with quality flags and whether its page should be indexed
 // → data/facts.json  every number the site prints, derived here so no page carries a hand-typed count
 //
 // Usage: node scripts/build-index.mjs
 
 import { readFile, writeFile } from "node:fs/promises";
+import { mergePackages, packageFacts } from "./package-signals.mjs";
+import { pathToFileURL } from "node:url";
 
 const read = async (f, fallback) => {
   try {
@@ -15,10 +18,7 @@ const read = async (f, fallback) => {
   }
 };
 
-const catalog = await read("katalog.json");
-const github = await read("github.json", { repos: {} });
-const probe = await read("probe.json", { results: {} });
-
+export function buildIndex(catalog, github = { repos: {} }, probe = { results: {} }, packages = null) {
 const EPHEMERAL = /(^|\.)(trycloudflare\.com|ngrok(-free)?\.(app|io|dev)|loca\.lt|localhost)$|^(127\.|0\.0\.0\.0|10\.|192\.168\.)/i;
 const TEST_LIKE = /(^|[-_.])(test\d*|tests|testing|demo\d*|example|hello[-_]?world|sample|dummy|tmp|temp|playground|foo|bar)([-_.]|$)|-ok$/i;
 const BULK_HOST = 50; // a host this busy is either a platform (Apify, Smithery) or a cloning operation
@@ -81,6 +81,7 @@ const servers = catalog.servers.map((s) => {
 
   return {
     ...s,
+    packages: mergePackages(s.packages, packages),
     host,
     gh: gh && !gh.missing ? gh : gh?.missing ? { missing: true } : null,
     live: live && {
@@ -106,6 +107,7 @@ const facts = {
   catalogFetchedAt: catalog.fetchedAt,
   githubFetchedAt: github.fetchedAt ?? null,
   probeUpdatedAt: probe.updatedAt ?? null,
+  packages: packages ? { fetchedAt: packages.fetchedAt, sample: packages.sample ?? null, ...packageFacts(catalog.servers, packages) } : null,
   servers: servers.length,
   active: count((s) => s.status === "active"),
   deprecated: count((s) => s.status === "deprecated"),
@@ -141,6 +143,12 @@ const facts = {
   massPublishers: [...perPublisher].filter(([, n]) => n > MASS_PUBLISHER).sort((a, b) => b[1] - a[1]).map(([publisher, n]) => ({ publisher, n })),
 };
 
-await writeFile(new URL("../data/index.json", import.meta.url), JSON.stringify({ builtAt: new Date().toISOString(), servers }));
-await writeFile(new URL("../data/facts.json", import.meta.url), JSON.stringify(facts, null, 1));
-console.log(JSON.stringify({ flags: facts.flags, indexable: facts.indexable, busyHosts: facts.busyHosts, massPublishers: facts.massPublishers }, null, 1));
+return { index: { builtAt: new Date().toISOString(), servers }, facts };
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { index, facts } = buildIndex(await read("katalog.json"), await read("github.json", { repos: {} }), await read("probe.json", { results: {} }), await read("packages.json", null));
+  await writeFile(new URL("../data/index.json", import.meta.url), JSON.stringify(index));
+  await writeFile(new URL("../data/facts.json", import.meta.url), JSON.stringify(facts, null, 1));
+  console.log(JSON.stringify({ flags: facts.flags, indexable: facts.indexable, busyHosts: facts.busyHosts, massPublishers: facts.massPublishers }, null, 1));
+}

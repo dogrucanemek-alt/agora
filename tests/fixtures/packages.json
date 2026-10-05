@@ -1,0 +1,7 @@
+{
+  "npm": {"name":"demo","dist-tags":{"latest":"2.0.0"},"versions":{"1.0.0":{},"2.0.0":{"deprecated":"Use another package"}},"time":{"2.0.0":"2026-10-01T12:00:00Z","modified":"2026-10-04T00:00:00Z"}},
+  "npmAbbreviated": {"name":"@scope/demo","dist-tags":{"latest":"1.0.0"},"versions":{"1.0.0":{}}},
+  "pypi": {"info":{"version":"2.0"},"releases":{"1.0":[{"upload_time_iso_8601":"2025-01-01T00:00:00Z","yanked":false}],"2.0":[{"upload_time_iso_8601":"2026-10-01T12:00:00Z","yanked":true},{"upload_time_iso_8601":"2026-10-02T12:00:00Z","yanked":true}]}},
+  "npmDownloads": {"demo":{"package":"demo","downloads":42,"start":"2026-09-28","end":"2026-10-04"},"zero":{"package":"zero","downloads":0},"missing":{"error":"package not found"}},
+  "pypistats": {"data":{"last_day":4,"last_week":99,"last_month":400},"package":"demo"}
+}

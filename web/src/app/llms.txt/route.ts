@@ -16,6 +16,10 @@ export async function GET() {
     `- Servers in the official MCP registry: ${n(f?.servers)} (read ${day(f?.catalogFetchedAt)})`,
     `- Remote endpoints checked: ${n(f?.probe.probed)} on ${day(f?.probeUpdatedAt)}; completed the handshake: ${n(f?.probe.answered)}; asked for sign-in: ${n(f?.probe.authRequired)}; asked for payment: ${n(f?.probe.paymentRequired)}; did not complete the handshake: ${n(f?.probe.notAnswering)}`,
     `- Linked GitHub repositories that no longer resolve: ${n(f?.repos.missing)} of ${n(f?.repos.distinct)}`,
+    ...(f?.packages ? [
+      `- Listed npm packages: ${n(f.packages.npm.listed)}; checked ${n(f.packages.npm.checked)}; not found ${n(f.packages.npm.missing)}`,
+      `- Listed PyPI packages: ${n(f.packages.pypi.listed)}; checked ${n(f.packages.pypi.checked)}; not found ${n(f.packages.pypi.missing)} (read ${day(f.packages.fetchedAt)}${f.packages.sample != null ? "; partial sample" : ""})`,
+    ] : []),
     "",
     "## What a check does not prove",
     "- An answered handshake means the endpoint is up. It does not mean the server is safe or that its tools behave as described.",

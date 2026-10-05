@@ -164,6 +164,23 @@ export default async function ToolPage({ params }: Props) {
           </>
         )}
 
+        {s.packages.some((p) => ["npm", "pypi"].includes(p.registry)) && (
+          <section>
+            <h2>Packages</h2>
+            {s.packages.filter((p) => ["npm", "pypi"].includes(p.registry)).map((p, i) => (
+              <section key={`${p.registry}:${p.id}:${i}`}>
+                <h3><a href={p.registry === "npm" ? `https://www.npmjs.com/package/${encodeURIComponent(p.id)}` : `https://pypi.org/project/${encodeURIComponent(p.id)}/`}>{p.registry}: {p.id}</a></h3>
+                <p>{p.signal?.exists === true ? "Exists" : p.signal?.exists === false ? "Not found (404)" : "Not measured / unavailable"}
+                  {p.signal && <> · metadata read {day(p.signal.checkedAt)}</>}</p>
+                <p>Latest version: {p.signal?.latestVersion ?? "unavailable"}. Last published: {day(p.signal?.latestPublish ?? p.signal?.latestUpload)}.</p>
+                <p>{p.registry === "npm" ? "Deprecated" : "Yanked"}: {(p.registry === "npm" ? p.signal?.deprecated : p.signal?.yanked) == null ? "unknown" : (p.registry === "npm" ? p.signal?.deprecated : p.signal?.yanked) ? "yes" : "no"}.</p>
+                <p>Weekly downloads: {p.signal?.weeklyDownloads == null ? "unavailable" : n(p.signal.weeklyDownloads)}
+                  {p.signal?.downloadsCheckedAt && <> · read {day(p.signal.downloadsCheckedAt)}</>}. <span className="muted">downloads include bots and CI</span>.</p>
+              </section>
+            ))}
+          </section>
+        )}
+
         <h2>Signed reports</h2>
         {proofs.count === 0 ? (
           <p className="muted">

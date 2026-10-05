@@ -30,6 +30,11 @@ export default async function Report() {
   const tc = f.toolCounts;
 
   const findings: { h: string; body: React.ReactNode }[] = [
+    ...(f.packages && f.packages.npm.checked > 0 && f.packages.pypi.checked > 0 ? [{
+      h: `${n(f.packages.npm.missing)} of ${n(f.packages.npm.listed)} npm packages and ${n(f.packages.pypi.missing)} of ${n(f.packages.pypi.listed)} PyPI packages listed in the registry do not exist`,
+      body: <>The package APIs returned 404. Metadata checked for {n(f.packages.npm.checked)} npm and {n(f.packages.pypi.checked)} PyPI packages;
+        read {day(f.packages.fetchedAt)}. Unchecked names and network failures are unknown.{f.packages.sample != null && " This is a partial sample."}</>,
+    }] : []),
     {
       h: `${pct(p.notAnswering, p.probed)} of remote servers fail the MCP handshake`,
       body: (

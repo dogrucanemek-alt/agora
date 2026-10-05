@@ -1,7 +1,7 @@
 // Local data for development: the catalog and accepted reports live in ../data (outside git).
 // This file is the seam where a database replaces the JSON files later; nothing else reads them.
 //
-// data/index.json is built by scripts/build-index.mjs (registry + GitHub + liveness probe).
+// data/index.json is built by scripts/build-index.mjs (registry + GitHub + liveness probe + packages).
 // data/facts.json holds every count the site prints; pages read numbers from there, never type them.
 
 import { readFile, writeFile } from "node:fs/promises";
@@ -19,6 +19,18 @@ export type Live = {
   tools: string[] | null;
 };
 export type GitHub = { stars: number; forks: number; pushedAt: string; archived: boolean; fork: boolean; license: string | null; language: string | null; canonical: string } | { missing: true };
+export type PackageSignal = {
+  exists: boolean | null;
+  checkedAt: string;
+  latestVersion?: string | null;
+  latestPublish?: string | null;
+  latestUpload?: string | null;
+  deprecated?: boolean | null;
+  yanked?: boolean | null;
+  weeklyDownloads?: number | null;
+  downloadsCheckedAt?: string | null;
+};
+export type PackageCounts = { listed: number; checked: number; missing: number; deprecated: number; yanked: number };
 
 export type Server = {
   name: string;
@@ -28,7 +40,7 @@ export type Server = {
   repo: string | null;
   website: string | null;
   remotes: { type: string; url: string }[];
-  packages: { registry: string; id: string }[];
+  packages: { registry: string; id: string; signal?: PackageSignal | null }[];
   status: string | null;
   updatedAt: string | null;
   host?: string | null;
@@ -39,6 +51,7 @@ export type Server = {
 };
 
 export type Facts = {
+  packages?: { fetchedAt: string; sample: number | null; npm: PackageCounts; pypi: PackageCounts } | null;
   registry: string;
   catalogFetchedAt: string;
   githubFetchedAt: string | null;

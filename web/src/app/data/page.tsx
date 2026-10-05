@@ -103,7 +103,13 @@ export default async function Data() {
         <h2>Columns</h2>
         <p>
           <code>name, endpoint, check_result, check_class, checked_at, protocol, tool_count, github_repo, github_stars, github_last_push, github_archived,
-          registry_status, flags, indexed</code>
+          registry_status, flags, indexed, npm_package, npm_exists, npm_weekly_downloads, npm_latest_publish,
+          pypi_package, pypi_exists, pypi_last_week_downloads, pypi_latest_upload, package_deprecated</code>
+        </p>
+        <p>
+          Multiple packages in one registry use aligned JSON arrays in the package columns; blank values or null array entries mean unknown.
+          Zero downloads and false existence are preserved. package_deprecated is true when any listed npm package is deprecated or any listed
+          PyPI release is yanked; false means all listed packages have known false flags, otherwise it is blank. Downloads include bots and CI.
         </p>
         <p>
           Descriptions are not in the file: they belong to their publishers and appear with attribution on each server&apos;s page.{" "}
