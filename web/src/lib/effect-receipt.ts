@@ -6,12 +6,15 @@
 // result. The caller can then hold its decision ledger against a row that the tool's operator signed,
 // not one it wrote itself.
 //
-// Request:  params._meta["io.cedulon/decision"] = { ref, deciderId }
+// Request:  params._meta["io.cedulon/decision"] = { ref, deciderId, prefix? }
 // Response: result._meta["io.cedulon/effect-extract"] = SignedEffectExtract
 //
-// The row's effectHash is SHA-256 over the RFC 8785 canonical form of { tool, arguments }, with the tool
-// name and the arguments exactly as Agora received them (before any default is filled in). That is the
-// same descriptor the caller hashes for its own decision, so the two can be compared byte for byte.
+// The row's effectHash is SHA-256 over the RFC 8785 canonical form of { tool, arguments }, with the
+// arguments exactly as Agora received them (before any default is filled in). A gate that mounts Agora
+// under a prefix (Verax names our search_tools "agora.search_tools") sends that prefix; the tool name in
+// the row is then "<prefix>.<our tool>". The prefix is the caller's; the tool part is always ours, so a
+// caller cannot get our signature over a tool we did not run. That is the descriptor the caller hashes
+// for its own decision, so the two can be compared byte for byte.
 //
 // What a receipt proves, and no more: Agora's key signed that Agora answered a call to this tool with
 // these arguments at this time, for the decision ref the caller named. The ref is the caller's label;
@@ -48,19 +51,27 @@ export function effectHash(tool: string, args: unknown): string {
 }
 
 /** The caller's decision label, or null when the request does not name one in the expected shape. */
-export function decisionFromMeta(meta: unknown): { ref: string; deciderId: string } | null {
+// The same rule Verax applies to a downstream prefix.
+const PREFIX_RE = /^[A-Za-z][A-Za-z0-9_-]{0,31}$/;
+
+export type DecisionLabel = { ref: string; deciderId: string; prefix?: string };
+
+export function decisionFromMeta(meta: unknown): DecisionLabel | null {
   if (!meta || typeof meta !== "object") return null;
   const d = (meta as Record<string, unknown>)[DECISION_META];
   if (!d || typeof d !== "object") return null;
-  const { ref, deciderId } = d as Record<string, unknown>;
+  const { ref, deciderId, prefix } = d as Record<string, unknown>;
   const ok = (v: unknown) => typeof v === "string" && v.length > 0 && v.length <= 200;
-  return ok(ref) && ok(deciderId) ? { ref: ref as string, deciderId: deciderId as string } : null;
+  if (!ok(ref) || !ok(deciderId)) return null;
+  if (prefix !== undefined && (typeof prefix !== "string" || !PREFIX_RE.test(prefix))) return null;
+  return { ref: ref as string, deciderId: deciderId as string, ...(prefix ? { prefix: prefix as string } : {}) };
 }
 
 export function signToolEffect(
-  input: { tool: string; args: unknown; ref: string; deciderId: string; nowMs: number },
+  input: { tool: string; args: unknown; ref: string; deciderId: string; prefix?: string; nowMs: number },
   key: ReceiptKey,
 ): SignedEffectExtract {
+  const tool = input.prefix ? `${input.prefix}.${input.tool}` : input.tool;
   return signEffectExtract(
     {
       deciderId: input.deciderId,
@@ -68,7 +79,7 @@ export function signToolEffect(
       // One-row window [t, t+1), the same shape Verax uses for its own one-row extracts.
       windowStartMs: input.nowMs,
       windowEndMs: input.nowMs + 1,
-      effects: [{ ref: input.ref, effectHash: effectHash(input.tool, input.args), effectClass: input.tool, timestampMs: input.nowMs }],
+      effects: [{ ref: input.ref, effectHash: effectHash(tool, input.args), effectClass: tool, timestampMs: input.nowMs }],
     },
     key.privateKeyPem,
     key.publicKeyPem,

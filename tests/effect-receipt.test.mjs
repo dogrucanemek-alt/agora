@@ -59,6 +59,18 @@ test("a changed row breaks the signature", () => {
   assert.equal(verifyEffectExtract(ex, key.publicKeyPem), false);
 });
 
+test("a caller's prefix names the row; the tool part stays ours", async () => {
+  const meta = { [DECISION_META]: { ref: "d-7", deciderId: "verax-proxy", prefix: "agora" } };
+  const route = withEffectReceipts(sseHandler(), () => key, () => T);
+  const row = (await readResult(await route(post(call(meta)))))._meta[RECEIPT_META].body.effects[0];
+  // Verax hashes "agora.search_tools" for a child it mounted under "agora".
+  assert.equal(row.effectHash, callerHash("agora.search_tools", { query: "postgres" }));
+  assert.equal(row.effectClass, "agora.search_tools");
+  // A prefix cannot smuggle another tool name in: it must be a bare prefix.
+  assert.equal(decisionFromMeta({ [DECISION_META]: { ref: "d", deciderId: "v", prefix: "bank.transfer" } }), null);
+  assert.equal(decisionFromMeta({ [DECISION_META]: { ref: "d", deciderId: "v", prefix: "" } }), null);
+});
+
 test("the decision label must be present and well formed", () => {
   assert.deepEqual(decisionFromMeta(named), { ref: "d-42", deciderId: "verax-proxy" });
   assert.equal(decisionFromMeta(undefined), null);
