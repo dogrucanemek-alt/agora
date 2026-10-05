@@ -120,6 +120,8 @@ const facts = {
     authRequired: probed.filter((s) => s.live.result === "auth").length,
     paymentRequired: probed.filter((s) => s.live.result === "http_402").length,
     notAnswering: probed.filter((s) => !LIVE_OK.has(s.live.result) && !GATED.has(s.live.result)).length,
+    // Rate-limited or templated: no countable answer, so outside probed and every bucket above.
+    unknown: servers.filter((s) => s.live && UNKNOWN.has(s.live.result)).length,
     rateLimited: servers.filter((s) => s.live?.result === "http_429").length,
     templated: servers.filter((s) => s.live?.result === "templated").length,
     byResult: Object.fromEntries(Object.entries(probe.tally ?? {}).sort((a, b) => b[1] - a[1])),

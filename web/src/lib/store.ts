@@ -62,7 +62,7 @@ export type Facts = {
   withRemote: number;
   withRepo: number;
   repos: { distinct: number | null; missing: number | null; archived: number };
-  probe: { probed: number; answered: number; authRequired: number; paymentRequired: number; notAnswering: number; rateLimited: number; templated: number; byResult: Record<string, number> };
+  probe: { probed: number; answered: number; authRequired: number; paymentRequired: number; notAnswering: number; unknown?: number; rateLimited: number; templated: number; byResult: Record<string, number> };
   flags: Record<string, number>;
   indexable: number;
   massPublishers: { publisher: string; n: number }[];

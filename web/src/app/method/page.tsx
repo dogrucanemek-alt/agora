@@ -41,7 +41,7 @@ export default async function Method() {
         <p>
           Last check: {day(f?.probeUpdatedAt)}. Of {n(f?.probe.probed)} endpoints checked, {n(f?.probe.answered)} completed the handshake,{" "}
           {n(f?.probe.authRequired)} asked for sign-in, {n(f?.probe.paymentRequired)} asked for payment and {n(f?.probe.notAnswering)} did not complete the handshake (no response, an HTTP error, or a reply that is not valid MCP).{" "}
-          {n(f?.probe.rateLimited)} rate-limited us and are counted as unknown.
+          Another {n(f?.probe.rateLimited)} rate-limited us and {n(f?.probe.templated)} list a templated URL; we count those as unknown and leave them out of the {n(f?.probe.probed)}.
         </p>
         <p>
           A server that answers the handshake is up. It is not thereby safe, correct or well behaved. Servers that run on your own machine (npm, PyPI,
@@ -76,7 +76,7 @@ export default async function Method() {
         <p>
           Anyone who runs a gate that signs its decisions can report that a server works, is broken or is unsafe, and attach the signed record. We verify
           the signature against the reporter&apos;s public key with the open <a href="https://www.npmjs.com/package/@cedulon/core">@cedulon/core</a>{" "}
-          verifier. A signed report shows a call went through that gate; today it does not prove which server answered, and the page says so.{" "}
+          verifier. A signed report shows that gate allowed a call; today it does not prove which server answered, and the page says so.{" "}
           <Link href="/agents">How to file one</Link>.
         </p>
 

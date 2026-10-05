@@ -86,6 +86,11 @@ export default async function Data() {
               <td className="src">failures re-checked</td>
             </tr>
             <tr>
+              <th scope="row">Unknown, left out of the counts above</th>
+              <td>{n(p ? (p.unknown ?? p.rateLimited + p.templated) : undefined)}</td>
+              <td className="src">rate-limited us or templated URL</td>
+            </tr>
+            <tr>
               <th scope="row">Linked repositories that no longer resolve</th>
               <td>
                 {n(f?.repos.missing)} of {n(f?.repos.distinct)}

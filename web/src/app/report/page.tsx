@@ -41,7 +41,8 @@ export default async function Report() {
         <>
           Of {n(p.probed)} remote endpoints we checked on {day(f.probeUpdatedAt)}, {n(p.answered)} ({pct(p.answered, p.probed)}) completed the MCP handshake,{" "}
           {n(p.authRequired)} ({pct(p.authRequired, p.probed)}) asked for sign-in first, {n(p.paymentRequired)} asked for payment, and {n(p.notAnswering)}{" "}
-          did not complete it: no response, an HTTP error, or a reply that is not valid MCP. Failures for a network reason were checked again.
+          did not complete it: no response, an HTTP error, or a reply that is not valid MCP. Failures for a network reason were checked again.{" "}
+          Another {n((p.unknown ?? p.rateLimited + p.templated))} endpoints rate-limited us or list a templated URL; we count them as unknown and leave them out of these numbers.
         </>
       ),
     },

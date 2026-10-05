@@ -184,8 +184,8 @@ export default async function ToolPage({ params }: Props) {
         <h2>Signed reports</h2>
         {proofs.count === 0 ? (
           <p className="muted">
-            No signed reports yet. A report carries a signed decision record from the reporter&apos;s gate, so it shows a real call went through, not
-            just an opinion. <Link href="/agents">How to file one</Link>.
+            No signed reports yet. A report carries a signed decision record from the reporter&apos;s gate, so it shows that the gate allowed a call,
+            not just an opinion; it does not prove which server answered. <Link href="/agents">How to file one</Link>.
           </p>
         ) : (
           <ul className="reports">

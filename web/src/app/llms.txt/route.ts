@@ -14,7 +14,7 @@ export async function GET() {
     "",
     "## Current numbers",
     `- Servers in the official MCP registry: ${n(f?.servers)} (read ${day(f?.catalogFetchedAt)})`,
-    `- Remote endpoints checked: ${n(f?.probe.probed)} on ${day(f?.probeUpdatedAt)}; completed the handshake: ${n(f?.probe.answered)}; asked for sign-in: ${n(f?.probe.authRequired)}; asked for payment: ${n(f?.probe.paymentRequired)}; did not complete the handshake: ${n(f?.probe.notAnswering)}`,
+    `- Remote endpoints checked: ${n(f?.probe.probed)} on ${day(f?.probeUpdatedAt)}; completed the handshake: ${n(f?.probe.answered)}; asked for sign-in: ${n(f?.probe.authRequired)}; asked for payment: ${n(f?.probe.paymentRequired)}; did not complete the handshake: ${n(f?.probe.notAnswering)}; unknown and left out of these counts (rate-limited us or templated URL): ${n(f ? (f.probe.unknown ?? f.probe.rateLimited + f.probe.templated) : undefined)}`,
     `- Linked GitHub repositories that no longer resolve: ${n(f?.repos.missing)} of ${n(f?.repos.distinct)}`,
     ...(f?.packages ? [
       `- Listed npm packages: ${n(f.packages.npm.listed)}; checked ${n(f.packages.npm.checked)}; not found ${n(f.packages.npm.missing)}`,
@@ -24,7 +24,7 @@ export async function GET() {
     "## What a check does not prove",
     "- An answered handshake means the endpoint is up. It does not mean the server is safe or that its tools behave as described.",
     "- Servers that run locally (npm, PyPI, Docker) cannot be checked from outside.",
-    "- A signed report proves a call went through the reporter's gate; it does not yet prove which server answered.",
+    "- A signed report proves the reporter's gate allowed a call; it does not yet prove which server answered.",
     "",
     "## Pages",
     `- [How we check](${SITE_URL}/method): sources, the handshake check, what is indexed`,
