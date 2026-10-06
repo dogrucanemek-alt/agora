@@ -34,7 +34,9 @@ export async function readPypiDownloads(names, { runQuery = bigQueryRunner(), no
 export function bigQueryRunner() {
   return async ({ query, params }) => {
     const { BigQuery } = await import("@google-cloud/bigquery");
-    const [job] = await new BigQuery().createQueryJob({ query, params, location: "US", maximumBytesBilled: String(MAX_BYTES_BILLED) });
+    // Keyless (federated) credentials carry no project, so the billing project is passed in the environment.
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || undefined;
+    const [job] = await new BigQuery({ projectId }).createQueryJob({ query, params, location: "US", maximumBytesBilled: String(MAX_BYTES_BILLED) });
     const [rows] = await job.getQueryResults();
     const [meta] = await job.getMetadata();
     return { rows, bytesBilled: Number(meta.statistics?.query?.totalBytesBilled ?? 0) };

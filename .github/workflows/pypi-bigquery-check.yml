@@ -29,6 +29,7 @@ jobs:
         with:
           workload_identity_provider: projects/146489802611/locations/global/workloadIdentityPools/github/providers/agora
           service_account: agora-pypi-downloads@project-4869c97c-9f9c-4001-937.iam.gserviceaccount.com
+          project_id: project-4869c97c-9f9c-4001-937
       - run: gh release download data-latest --pattern index.json --output "$RUNNER_TEMP/index.json"
       - name: one query over every listed PyPI package
         run: |
