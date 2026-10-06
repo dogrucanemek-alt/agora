@@ -1,7 +1,7 @@
 // PyPI weekly downloads from the public BigQuery table, as pypistats.org asks bulk readers to do.
 // One query per refresh; maximumBytesBilled makes BigQuery refuse a query that would scan more.
 export const TABLE = "bigquery-public-data.pypi.file_downloads";
-export const MAX_BYTES_BILLED = 200 * 1024 ** 3;
+export const MAX_BYTES_BILLED = 700 * 1024 ** 3; // one 7-day scan measured 6 Oct 2026: 645,174,132,736 bytes
 
 // PEP 503 normalized form, which is how the table stores file.project.
 export const normalizePypi = (name) => name.toLowerCase().replace(/[-_.]+/g, "-");
