@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseNpm, parsePypi, parseDownloads, parsePypistats, npmPath, npmBatches, request, pool, pypistatsReader } from "../scripts/packages.mjs";
+import { parseNpm, parsePypi, parseDownloads, npmPath, npmBatches, request, pool, attachPypiDownloads } from "../scripts/packages.mjs";
+import { normalizePypi, weekWindow, countsByName, readPypiDownloads, QUERY, MAX_BYTES_BILLED } from "../scripts/pypi-bigquery.mjs";
 import { buildIndex } from "../scripts/build-index.mjs";
 import { mergePackages, packageFacts } from "../scripts/package-signals.mjs";
 import { PACKAGE_COLUMNS, packageCells, csvCell } from "../web/src/lib/packages-csv.ts";
@@ -45,8 +46,6 @@ test("download parsing preserves zero and unavailable", () => {
   assert.equal(parseDownloads(f.npmDownloads, "zero"), 0);
   assert.equal(parseDownloads({ package: "scoped", downloads: 7 }, "scoped"), 7);
   assert.equal(parseDownloads(f.npmDownloads, "missing"), null);
-  assert.equal(parsePypistats(f.pypistats), 99);
-  assert.equal(parsePypistats({ data: {} }), null);
 });
 test("package merge preserves registry IDs and unknown sources", () => {
   const packages = [{ registry: "pypi", id: "Demo_Tool" }, { registry: "npm", id: "@a/b" }, { registry: "oci", id: "image" }];
@@ -107,16 +106,43 @@ test("index builder merges package facts without changing ranking inputs", () =>
   assert.equal(before.facts.packages, null);
 });
 
-test("PyPI Stats throttles, backs off on 429 and leaves unavailable counts null", async () => {
-  let time = 0, requests = 0;
-  const waits = [];
-  const stats = pypistatsReader({ now: () => time, wait: async (ms) => { waits.push(ms); time += ms; }, get: async () => {
-    requests++;
-    return requests === 1 ? { status: 200, body: f.pypistats, checkedAt: at } : { status: 429, retryAfter: "20", checkedAt: at };
-  } });
-  assert.equal((await stats("demo")).weeklyDownloads, 99);
-  assert.equal((await stats("limited")).weeklyDownloads, null);
-  assert.equal((await stats("skipped")).downloadsCheckedAt, null);
-  assert.equal(requests, 3);
-  assert.deepEqual(waits, [0, 1000, 20000]);
+test("PyPI names are PEP 503 normalized, the window is seven finished UTC days", () => {
+  assert.equal(normalizePypi("Foo_Bar.baz--Qux"), "foo-bar-baz-qux");
+  assert.deepEqual(weekWindow(new Date("2026-10-06T15:30:00Z")), { start: "2026-09-29T00:00:00.000Z", end: "2026-10-06T00:00:00.000Z" });
+});
+test("BigQuery query filters the partition and the listed projects, under a byte cap", () => {
+  assert.match(QUERY, /timestamp >= TIMESTAMP\(@start\) AND timestamp < TIMESTAMP\(@end\)/);
+  assert.match(QUERY, /file\.project IN UNNEST\(@names\)/);
+  assert.ok(MAX_BYTES_BILLED > 0 && MAX_BYTES_BILLED <= 1024 ** 4);
+});
+test("BigQuery counts: a listed package with no row is 0, names map through normalization", async () => {
+  assert.deepEqual(countsByName(["Demo_Pkg", "quiet"], [{ project: "demo-pkg", downloads: "99" }]), { Demo_Pkg: 99, quiet: 0 });
+  let seen;
+  const r = await readPypiDownloads(["Demo_Pkg", "demo-pkg", "quiet"], { now: new Date("2026-10-06T00:00:00Z"),
+    runQuery: async (q) => { seen = q; return { rows: [{ project: "demo-pkg", downloads: 5 }], bytesBilled: 1234 }; } });
+  assert.deepEqual(seen.params.names, ["demo-pkg", "quiet"]);
+  assert.equal(seen.params.start, "2026-09-29T00:00:00.000Z");
+  assert.deepEqual(r.counts, { Demo_Pkg: 5, "demo-pkg": 5, quiet: 0 });
+  assert.equal(r.bytesBilled, 1234);
+});
+test("PyPI downloads stay null without BigQuery, on query failure, and for missing packages", async () => {
+  const fresh = () => ({ a: { exists: true }, gone: { exists: false }, odd: { exists: null } });
+  let pypi = fresh();
+  const off = await attachPypiDownloads(pypi, Object.keys(pypi), { bigQuery: false, pypiDownloads: async () => { throw new Error("must not run"); } });
+  assert.equal(off.source, "unavailable");
+  assert.deepEqual(Object.values(pypi).map((v) => v.weeklyDownloads), [null, null, null]);
+  pypi = fresh();
+  const failed = await attachPypiDownloads(pypi, Object.keys(pypi), { bigQuery: true, pypiDownloads: async () => { throw new Error("bytes billed limit exceeded"); } });
+  assert.match(failed.error, /limit exceeded/);
+  assert.equal(pypi.a.weeklyDownloads, null);
+  pypi = fresh();
+  let asked;
+  const ok = await attachPypiDownloads(pypi, Object.keys(pypi), { bigQuery: true,
+    pypiDownloads: async (names) => { asked = names; return { counts: { a: 0 }, window: { start: "s", end: "e" }, bytesBilled: 10, checkedAt: at }; } });
+  assert.deepEqual(asked, ["a"]);
+  assert.equal(pypi.a.weeklyDownloads, 0);
+  assert.equal(pypi.a.downloadsCheckedAt, at);
+  assert.equal(pypi.gone.weeklyDownloads, null);
+  assert.equal(pypi.odd.weeklyDownloads, null);
+  assert.equal(ok.bytesBilled, 10);
 });

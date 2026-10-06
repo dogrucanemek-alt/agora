@@ -3,6 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { listedPackages } from "./package-signals.mjs";
+import { readPypiDownloads } from "./pypi-bigquery.mjs";
 
 export const USER_AGENT = "agora-probe/0.1 (+https://openforallofus.com/probe)";
 export const npmPath = (name) => encodeURIComponent(name).replace(/%2F/g, "%2f");
@@ -37,7 +38,6 @@ export function parseDownloads(body, name) {
   const d = body?.package === name ? body : body?.[name];
   return Number.isFinite(d?.downloads) && d.downloads >= 0 ? d.downloads : null;
 }
-export const parsePypistats = (body) => Number.isFinite(body?.data?.last_week) && body.data.last_week >= 0 ? body.data.last_week : null;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function request(url, headers = {}, fetcher = fetch) {
@@ -60,31 +60,25 @@ export async function pool(list, limit, fn) {
   }));
 }
 
-// Serialized optional source, with injectable clock/transport for offline rate-limit tests.
-export function pypistatsReader({ get = request, wait = sleep, now = Date.now } = {}) {
-  let nextRequest = 0, stopped = false;
-  return async (name) => {
-    let r;
-    if (!stopped) {
-      await wait(Math.max(0, nextRequest - now()));
-      try {
-        const url = `https://pypistats.org/api/packages/${encodeURIComponent(name.toLowerCase())}/recent`;
-        r = await get(url);
-        if (r.status === 429) {
-          const retryMs = Number(r.retryAfter) * 1000 || Date.parse(r.retryAfter) - now() || 10000;
-          await wait(Math.min(60000, Math.max(10000, retryMs)));
-          r = await get(url);
-          if (r.status === 429) stopped = true;
-        }
-      } catch { stopped = true; }
-      nextRequest = now() + 1000;
-    }
-    return { weeklyDownloads: r?.status === 200 ? parsePypistats(r.body) : null,
-      downloadsCheckedAt: r?.checkedAt ?? null, downloadsStatus: r?.status ?? null };
-  };
+// PyPI counts come from BigQuery or not at all: pypistats.org asks bulk readers not to use its API.
+// Without credentials or on a failed query every count stays null (unknown), never 0.
+export async function attachPypiDownloads(pypi, names, { pypiDownloads = readPypiDownloads, bigQuery = false } = {}) {
+  const meta = { source: bigQuery ? "bigquery" : "unavailable", window: null, bytesBilled: null, error: null };
+  let counts = null, checkedAt = null;
+  // Only packages PyPI says exist are counted; a missing or unknown package has no count, not 0.
+  const existing = names.filter((n) => pypi[n]?.exists === true);
+  if (bigQuery && existing.length) {
+    try {
+      const r = await pypiDownloads(existing);
+      Object.assign(meta, { window: r.window, bytesBilled: r.bytesBilled });
+      ({ counts, checkedAt } = r);
+    } catch (error) { meta.error = String(error?.message ?? error).slice(0, 300); }
+  }
+  for (const name of names) Object.assign(pypi[name], { weeklyDownloads: counts?.[name] ?? null, downloadsCheckedAt: counts?.[name] == null ? null : checkedAt });
+  return meta;
 }
 
-export async function collect(catalog, sample = null) {
+export async function collect(catalog, sample = null, { pypiDownloads = readPypiDownloads, bigQuery = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS) } = {}) {
   const listed = listedPackages(catalog.servers);
   const selected = { npm: [], pypi: [] };
   if (sample === null) Object.assign(selected, listed);
@@ -123,8 +117,7 @@ export async function collect(catalog, sample = null) {
     for (const name of batch) Object.assign(out.npm[name], { weeklyDownloads: r?.status === 200 ? parseDownloads(r.body, name) : null,
       downloadsCheckedAt: r?.checkedAt ?? new Date().toISOString() });
   });
-  const stats = pypistatsReader();
-  for (const name of selected.pypi) Object.assign(out.pypi[name], await stats(name));
+  out.pypiDownloads = await attachPypiDownloads(out.pypi, selected.pypi, { pypiDownloads, bigQuery });
   out.summary = Object.fromEntries(["npm", "pypi"].map((registry) => {
     const values = Object.values(out[registry]);
     return [registry, { selected: values.length, exists: values.filter((v) => v.exists === true).length,
@@ -140,5 +133,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const catalog = JSON.parse(await readFile(new URL("../data/katalog.json", import.meta.url), "utf8"));
   const out = await collect(catalog, args.length ? Number(args[1]) : null);
   await writeFile(new URL("../data/packages.json", import.meta.url), JSON.stringify(out));
-  console.log(JSON.stringify({ sample: out.sample, ...out.summary }, null, 2));
+  console.log(JSON.stringify({ sample: out.sample, ...out.summary, pypiDownloads: out.pypiDownloads }, null, 2));
 }

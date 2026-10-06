@@ -64,8 +64,10 @@ export default async function Method() {
         <h2>5. PyPI</h2>
         <p>
           The <a href="https://pypi.org/">PyPI</a> JSON API supplies existence, latest version, the latest release&apos;s upload time
-          and whether all its files are yanked. <a href="https://pypistats.org/">PyPI Stats</a> supplies last-week downloads when available.
-          We throttle requests and back off on rate limits; missing download counts are unknown. Downloads include bots and CI.
+          and whether all its files are yanked. Last-week downloads come from PyPI&apos;s public download table in Google BigQuery
+          (<code>bigquery-public-data.pypi.file_downloads</code>), counted over the seven full UTC days before each refresh, as{" "}
+          <a href="https://pypistats.org/api/">PyPI Stats</a> asks bulk readers to do. When that query does not run, counts are unknown
+          rather than zero. Downloads include bots and CI.
           These signals do not prove safety, correctness or use by people, and do not affect ranking.
         </p>
         {f?.packages && <p>Packages read {day(f.packages.fetchedAt)}: {n(f.packages.npm.checked)} of {n(f.packages.npm.listed)} listed npm packages

@@ -35,6 +35,14 @@ jobs:
 
       - run: npm run catalog
       - run: node scripts/github.mjs
+      - name: BigQuery key for PyPI download counts (optional; without it the counts stay unknown)
+        env:
+          BQ_KEY: ${{ secrets.GCP_BQ_KEY }}
+        run: |
+          if [ -n "$BQ_KEY" ]; then
+            printf '%s' "$BQ_KEY" > "$RUNNER_TEMP/bq.json"
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/bq.json" >> "$GITHUB_ENV"
+          fi
       - run: node scripts/packages.mjs
       - run: node scripts/probe.mjs --fresh
       - run: node scripts/probe.mjs --retry
