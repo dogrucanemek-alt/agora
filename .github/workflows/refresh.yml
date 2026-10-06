@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # keyless Google sign-in for the BigQuery PyPI download query
 
 concurrency:
   group: refresh
@@ -35,14 +36,15 @@ jobs:
 
       - run: npm run catalog
       - run: node scripts/github.mjs
-      - name: BigQuery key for PyPI download counts (optional; without it the counts stay unknown)
-        env:
-          BQ_KEY: ${{ secrets.GCP_BQ_KEY }}
-        run: |
-          if [ -n "$BQ_KEY" ]; then
-            printf '%s' "$BQ_KEY" > "$RUNNER_TEMP/bq.json"
-            echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/bq.json" >> "$GITHUB_ENV"
-          fi
+      # Workload Identity Federation: no stored key. Only this repository may use the service
+      # account, and it can only run BigQuery jobs. If sign-in fails, PyPI counts stay unknown.
+      - name: Google sign-in for PyPI download counts
+        id: gcp
+        continue-on-error: true
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/146489802611/locations/global/workloadIdentityPools/github/providers/agora
+          service_account: agora-pypi-downloads@project-4869c97c-9f9c-4001-937.iam.gserviceaccount.com
       - run: node scripts/packages.mjs
       - run: node scripts/probe.mjs --fresh
       - run: node scripts/probe.mjs --retry

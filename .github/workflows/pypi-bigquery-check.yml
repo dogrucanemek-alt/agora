@@ -1,0 +1,46 @@
+name: pypi bigquery check
+
+# One-off measurement on the feature branch before merge: does keyless sign-in work, how many
+# listed PyPI packages match the BigQuery table, and how many bytes the query is billed.
+# Writes nothing back. Remove before merging to main.
+
+on:
+  push:
+    branches: [feat/pypi-bigquery]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/146489802611/locations/global/workloadIdentityPools/github/providers/agora
+          service_account: agora-pypi-downloads@project-4869c97c-9f9c-4001-937.iam.gserviceaccount.com
+      - run: gh release download data-latest --pattern index.json --output "$RUNNER_TEMP/index.json"
+      - name: one query over every listed PyPI package
+        run: |
+          node --input-type=module -e '
+          import { readFileSync } from "node:fs";
+          import { readPypiDownloads, MAX_BYTES_BILLED } from "./scripts/pypi-bigquery.mjs";
+          const index = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/index.json", "utf8"));
+          const names = [...new Set(index.servers.flatMap((s) => (s.packages ?? []).filter((p) => p.registry === "pypi").map((p) => p.id)))].sort();
+          const r = await readPypiDownloads(names);
+          const counts = Object.values(r.counts);
+          console.log(JSON.stringify({ listed: names.length, withDownloads: counts.filter((n) => n > 0).length,
+            zero: counts.filter((n) => n === 0).length, window: r.window, bytesBilled: r.bytesBilled,
+            gibBilled: +(r.bytesBilled / 1024 ** 3).toFixed(2), capGib: MAX_BYTES_BILLED / 1024 ** 3,
+            top: Object.entries(r.counts).sort((a, b) => b[1] - a[1]).slice(0, 5) }, null, 2));
+          '
