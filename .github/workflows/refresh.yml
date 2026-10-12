@@ -73,7 +73,8 @@ jobs:
           HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
         run: |
           if [ -z "$HOOK" ]; then echo "no deploy hook configured"; exit 1; fi
-          curl -fsS -X POST "$HOOK" > /dev/null
+          # The hook can answer 429 (seen 12 Oct 2026); wait and try again instead of failing the run.
+          curl -fsS --retry 6 --retry-delay 90 -X POST "$HOOK" > /dev/null
 
       - name: tell IndexNow
         run: node scripts/indexnow.mjs || echo "IndexNow ping failed; the next run will try again"
