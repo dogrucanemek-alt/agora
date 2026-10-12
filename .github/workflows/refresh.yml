@@ -1,12 +1,19 @@
 name: refresh data
 
-# Weekly: read the registry, GitHub signals and the handshake check again, publish the result as the
-# "data-latest" release, and rebuild the site from it.
+# Daily: read the registry, GitHub signals and the handshake check again, publish the result as the
+# "data-latest" release, keep the day's result in "data-history", and rebuild the site from it.
+# The PyPI download query costs money per run, so it runs on Mondays only; the other days carry
+# Monday's counts forward with the date they were read.
 
 on:
   schedule:
-    - cron: "17 3 * * 1" # Mondays 03:17 UTC
+    - cron: "17 3 * * *" # every day 03:17 UTC
   workflow_dispatch:
+    inputs:
+      pypi_downloads:
+        description: "Run the PyPI download query (billed) in this run"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -36,10 +43,28 @@ jobs:
 
       - run: npm run catalog
       - run: node scripts/github.mjs
+
+      # The last published package snapshot supplies PyPI counts on the days the query does not run.
+      # With no snapshot to carry from, the query runs whatever the day is.
+      - name: decide whether the PyPI download query runs today
+        id: plan
+        env:
+          ASKED: ${{ inputs.pypi_downloads }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          gh release download data-latest --pattern packages.json --output data/packages.previous.json || rm -f data/packages.previous.json
+          query=false
+          if [ "$EVENT" = "schedule" ] && [ "$(date -u +%u)" = "1" ]; then query=true; fi
+          if [ "$ASKED" = "true" ]; then query=true; fi
+          if [ ! -s data/packages.previous.json ]; then query=true; fi
+          echo "query=$query" >> "$GITHUB_OUTPUT"
+          echo "PyPI download query today: $query"
+
       # Workload Identity Federation: no stored key. Only this repository may use the service
-      # account, and it can only run BigQuery jobs. If sign-in fails, PyPI counts stay unknown.
+      # account, and it can only run BigQuery jobs. If sign-in fails, PyPI counts are carried or stay unknown.
       - name: Google sign-in for PyPI download counts
         id: gcp
+        if: steps.plan.outputs.query == 'true'
         continue-on-error: true
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
@@ -65,8 +90,8 @@ jobs:
 
       - name: publish data-latest
         run: |
-          gh release view data-latest >/dev/null 2>&1 || gh release create data-latest --title "Data (latest)" --notes "Measurements behind openforallofus.com. Replaced weekly. CC BY 4.0." --latest=false
-          gh release upload data-latest data/index.json data/facts.json --clobber
+          gh release view data-latest >/dev/null 2>&1 || gh release create data-latest --title "Data (latest)" --notes "Measurements behind openforallofus.com. Replaced on every refresh. CC BY 4.0." --latest=false
+          gh release upload data-latest data/index.json data/facts.json data/packages.json --clobber
 
       - name: rebuild the site
         env:
@@ -78,3 +103,10 @@ jobs:
 
       - name: tell IndexNow
         run: node scripts/indexnow.mjs || echo "IndexNow ping failed; the next run will try again"
+
+      # Last, so a problem here cannot hold back the site; it still fails the run, so it gets seen.
+      - name: keep today's result in data-history
+        run: |
+          node scripts/history.mjs
+          gh release view data-history >/dev/null 2>&1 || gh release create data-history --title "Data (history)" --notes "One file per check day: the handshake class of every server with a remote endpoint. CC BY 4.0." --latest=false
+          gh release upload data-history data/history/status-*.json.gz --clobber

@@ -62,7 +62,9 @@ export async function pool(list, limit, fn) {
 
 // PyPI counts come from BigQuery or not at all: pypistats.org asks bulk readers not to use its API.
 // Without credentials or on a failed query every count stays null (unknown), never 0.
-export async function attachPypiDownloads(pypi, names, { pypiDownloads = readPypiDownloads, bigQuery = false } = {}) {
+// The query runs once a week; on the other days `previous` (the last published snapshot) supplies the
+// counts, each with the date it was actually read, so a carried number never looks freshly measured.
+export async function attachPypiDownloads(pypi, names, { pypiDownloads = readPypiDownloads, bigQuery = false, previous = null } = {}) {
   const meta = { source: bigQuery ? "bigquery" : "unavailable", window: null, bytesBilled: null, error: null };
   let counts = null, checkedAt = null;
   // Only packages PyPI says exist are counted; a missing or unknown package has no count, not 0.
@@ -75,10 +77,21 @@ export async function attachPypiDownloads(pypi, names, { pypiDownloads = readPyp
     } catch (error) { meta.error = String(error?.message ?? error).slice(0, 300); }
   }
   for (const name of names) Object.assign(pypi[name], { weeklyDownloads: counts?.[name] ?? null, downloadsCheckedAt: counts?.[name] == null ? null : checkedAt });
+  if (!counts && previous?.pypi) {
+    let carried = 0;
+    for (const name of existing) {
+      const old = previous.pypi[name];
+      if (Number.isFinite(old?.weeklyDownloads) && old.downloadsCheckedAt) {
+        Object.assign(pypi[name], { weeklyDownloads: old.weeklyDownloads, downloadsCheckedAt: old.downloadsCheckedAt });
+        carried++;
+      }
+    }
+    if (carried) Object.assign(meta, { source: "carried", window: previous.pypiDownloads?.window ?? null, carried });
+  }
   return meta;
 }
 
-export async function collect(catalog, sample = null, { pypiDownloads = readPypiDownloads, bigQuery = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS) } = {}) {
+export async function collect(catalog, sample = null, { pypiDownloads = readPypiDownloads, bigQuery = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS), previous = null } = {}) {
   const listed = listedPackages(catalog.servers);
   const selected = { npm: [], pypi: [] };
   if (sample === null) Object.assign(selected, listed);
@@ -117,7 +130,7 @@ export async function collect(catalog, sample = null, { pypiDownloads = readPypi
     for (const name of batch) Object.assign(out.npm[name], { weeklyDownloads: r?.status === 200 ? parseDownloads(r.body, name) : null,
       downloadsCheckedAt: r?.checkedAt ?? new Date().toISOString() });
   });
-  out.pypiDownloads = await attachPypiDownloads(out.pypi, selected.pypi, { pypiDownloads, bigQuery });
+  out.pypiDownloads = await attachPypiDownloads(out.pypi, selected.pypi, { pypiDownloads, bigQuery, previous });
   out.summary = Object.fromEntries(["npm", "pypi"].map((registry) => {
     const values = Object.values(out[registry]);
     return [registry, { selected: values.length, exists: values.filter((v) => v.exists === true).length,
@@ -131,7 +144,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const args = process.argv.slice(2);
   if (args.length && (args.length !== 2 || args[0] !== "--sample" || !/^\d+$/.test(args[1]) || Number(args[1]) < 1)) throw new Error("Usage: node scripts/packages.mjs [--sample N]");
   const catalog = JSON.parse(await readFile(new URL("../data/katalog.json", import.meta.url), "utf8"));
-  const out = await collect(catalog, args.length ? Number(args[1]) : null);
+  // data/packages.previous.json is the last published snapshot, when the workflow has fetched one.
+  const previous = await readFile(new URL("../data/packages.previous.json", import.meta.url), "utf8").then(JSON.parse, () => null);
+  const out = await collect(catalog, args.length ? Number(args[1]) : null, { previous });
   await writeFile(new URL("../data/packages.json", import.meta.url), JSON.stringify(out));
   console.log(JSON.stringify({ sample: out.sample, ...out.summary, pypiDownloads: out.pypiDownloads }, null, 2));
 }

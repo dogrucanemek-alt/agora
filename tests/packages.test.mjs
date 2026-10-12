@@ -146,3 +146,30 @@ test("PyPI downloads stay null without BigQuery, on query failure, and for missi
   assert.equal(pypi.odd.weeklyDownloads, null);
   assert.equal(ok.bytesBilled, 10);
 });
+
+test("on a day without the query, PyPI counts are carried from the last snapshot with their own read date", async () => {
+  const previous = { pypiDownloads: { window: { start: "s", end: "e" } },
+    pypi: { a: { weeklyDownloads: 7, downloadsCheckedAt: "2026-10-12T05:00:00.000Z" }, gone: { weeklyDownloads: 3, downloadsCheckedAt: "2026-10-12T05:00:00.000Z" },
+      unread: { weeklyDownloads: null, downloadsCheckedAt: null }, undated: { weeklyDownloads: 9, downloadsCheckedAt: null } } };
+  const pypi = { a: { exists: true }, gone: { exists: false }, unread: { exists: true }, undated: { exists: true }, fresh: { exists: true } };
+  const meta = await attachPypiDownloads(pypi, Object.keys(pypi), { bigQuery: false, previous, pypiDownloads: async () => { throw new Error("must not run"); } });
+  assert.equal(meta.source, "carried");
+  assert.equal(meta.carried, 1);
+  assert.deepEqual(meta.window, { start: "s", end: "e" });
+  assert.deepEqual(pypi.a, { exists: true, weeklyDownloads: 7, downloadsCheckedAt: "2026-10-12T05:00:00.000Z" });
+  // A package PyPI no longer lists, one never counted, one counted without a date and a new one all stay unknown.
+  for (const name of ["gone", "unread", "undated", "fresh"]) assert.equal(pypi[name].weeklyDownloads, null, name);
+});
+test("a fresh query wins over the last snapshot; a failed one falls back to it", async () => {
+  const previous = { pypi: { a: { weeklyDownloads: 7, downloadsCheckedAt: "2026-10-12T05:00:00.000Z" } } };
+  let pypi = { a: { exists: true } };
+  const ok = await attachPypiDownloads(pypi, ["a"], { bigQuery: true, previous,
+    pypiDownloads: async () => ({ counts: { a: 11 }, window: null, bytesBilled: 1, checkedAt: "2026-10-19T05:00:00.000Z" }) });
+  assert.equal(ok.source, "bigquery");
+  assert.deepEqual([pypi.a.weeklyDownloads, pypi.a.downloadsCheckedAt], [11, "2026-10-19T05:00:00.000Z"]);
+  pypi = { a: { exists: true } };
+  const failed = await attachPypiDownloads(pypi, ["a"], { bigQuery: true, previous, pypiDownloads: async () => { throw new Error("quota"); } });
+  assert.equal(failed.source, "carried");
+  assert.match(failed.error, /quota/);
+  assert.deepEqual([pypi.a.weeklyDownloads, pypi.a.downloadsCheckedAt], [7, "2026-10-12T05:00:00.000Z"]);
+});

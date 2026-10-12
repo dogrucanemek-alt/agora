@@ -1,6 +1,6 @@
 // Before a build: make sure data/ holds what the site reads. Locally the scripts have built it already;
 // on Vercel (data/ is not in git) the files come from the "data-latest" release of this repository,
-// which the weekly refresh workflow replaces.
+// which the refresh workflow replaces.
 //
 // Usage: node scripts/fetch-data.mjs   (no-op when data/index.json and data/facts.json exist)
 
