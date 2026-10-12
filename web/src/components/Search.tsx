@@ -7,7 +7,8 @@ import { liveLabel, toolPath } from "@/lib/site";
 
 type Response = SearchResult & { ms: number };
 
-export default function Search({ tagline }: { tagline?: string }) {
+// `children` is what the home page shows under the box until a search is run (numbers and topic links, rendered on the server).
+export default function Search({ tagline, children }: { tagline?: string; children?: React.ReactNode }) {
   const [q, setQ] = useState("");
   const [data, setData] = useState<Response | null>(null);
 
@@ -38,6 +39,7 @@ export default function Search({ tagline }: { tagline?: string }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" autoFocus placeholder="Search MCP servers: postgres, slack, browser, payments…" aria-label="Search MCP servers" />
         </form>
         {!data && tagline && <p className="tagline">{tagline}</p>}
+        {!data && children}
         {data && (
           <div className="meta">
             {data.total.toLocaleString()} of {data.catalog.toLocaleString()} tools match · {data.ms} ms · {data.withProof} with signed reports

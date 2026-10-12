@@ -19,6 +19,13 @@ export default async function Home() {
     { q: "How many MCP servers actually work?", a: found },
     { q: "Can my agent use it?", a: agents },
   ];
+  // The same counts the answers below are written from, as the four numbers a visitor sees first.
+  const stats = [
+    { value: n(f?.servers), label: "servers in the official registry" },
+    { value: n(p?.answered), label: "complete the handshake" },
+    { value: n(p?.authRequired), label: "ask for sign-in first" },
+    { value: n(p?.notAnswering), label: "fail the handshake" },
+  ];
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -38,7 +45,23 @@ export default async function Home() {
       <Sky />
       <div className="vignette" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <Search tagline={`${n(f?.servers)} MCP servers. We checked ${n(p?.probed)} remote endpoints: ${n(p?.answered)} complete the handshake, ${n(p?.notAnswering)} fail it.`} />
+      <Search tagline={`MCP servers, ranked by what we measured. Checked ${day(f?.probeUpdatedAt)}.`}>
+        <ul className="stats">
+          {stats.map((x) => (
+            <li key={x.label}>
+              <strong>{x.value}</strong>
+              <span>{x.label}</span>
+            </li>
+          ))}
+        </ul>
+        <ul className="topics quick" aria-label="Browse by topic">
+          {TOPICS.map((t) => (
+            <li key={t.slug}>
+              <Link href={`/topics/${t.slug}`}>{t.label}</Link>
+            </li>
+          ))}
+        </ul>
+      </Search>
       <section className="tool about">
         {qa.map((x) => (
           <div key={x.q}>
@@ -50,14 +73,6 @@ export default async function Home() {
           An answered handshake means a server is up, not that it is safe. <Link href="/method">How we check</Link> ·{" "}
           <Link href="/data">Download the data</Link> · <Link href="/agents">Connect your agent</Link>
         </p>
-        <h2>Browse by topic</h2>
-        <ul className="topics">
-          {TOPICS.map((t) => (
-            <li key={t.slug}>
-              <Link href={`/topics/${t.slug}`}>{t.label}</Link>
-            </li>
-          ))}
-        </ul>
       </section>
       <Footer />
     </>

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer, Header } from "@/components/Chrome";
+import Copy from "@/components/Copy";
 import { answers, getServer, related, type Server } from "@/lib/store";
 import { BRAND, FLAG_TEXT, clip, SITE_URL, day, liveLabel, n, registryRecordUrl, toolPath } from "@/lib/site";
 
@@ -55,6 +56,8 @@ export default async function ToolPage({ params }: Props) {
   const npm = s.packages.find((p) => p.registry === "npm");
   const short = (s.name.split("/").pop() ?? "server").replace(/[^a-z0-9-]/gi, "-").toLowerCase();
   const live = s.live ? liveLabel(s.live) : null;
+  const pageUrl = SITE_URL + toolPath(s.name);
+  const badgePath = `/badge/${s.name}.svg`;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -101,6 +104,9 @@ export default async function ToolPage({ params }: Props) {
             <strong>{live.text}.</strong> Checked {day(s.live!.at)}.
           </div>
         )}
+        <p className="ownerlink">
+          <a href="#badge">Maintain this server? Get the badge</a>
+        </p>
 
         <h2>What we measured</h2>
         <table className="facts">
@@ -229,15 +235,23 @@ export default async function ToolPage({ params }: Props) {
           </>
         )}
 
-        {s.repo && (
-          <>
-            <h2>Badge for your README</h2>
-            <p className="muted">Shows the result of our latest check and links back to this page.</p>
-            <pre>
-              <code>{`[![agora](${SITE_URL}/badge/${s.name}.svg)](${SITE_URL + toolPath(s.name)})`}</code>
-            </pre>
-          </>
-        )}
+        <section className="owner" id="badge">
+          <h2>Is this your server?</h2>
+          <p>
+            Show the result of our latest check where your users look first. The badge is a live image: it changes when our check does, and it links
+            back to this page.
+          </p>
+          <p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={badgePath} alt={`Agora badge for ${s.name}`} height={20} />
+          </p>
+          <Copy label="Markdown (README)" text={`[![agora](${SITE_URL}${badgePath})](${pageUrl})`} />
+          <Copy label="HTML (website or docs)" text={`<a href="${pageUrl}"><img src="${SITE_URL}${badgePath}" alt="Agora: MCP handshake check" height="20"></a>`} />
+          <p className="muted">
+            The badge reports one thing: the result of our last handshake check. A server with no remote endpoint shows as &quot;runs locally&quot;.{" "}
+            <Link href="/method">How we check</Link>.
+          </p>
+        </section>
 
         <p className="agentnote muted">
           Agents can read this page as data: MCP endpoint <code>{SITE_URL}/api/mcp</code>, tool <code>get_tool</code> with name <code>{s.name}</code>.
