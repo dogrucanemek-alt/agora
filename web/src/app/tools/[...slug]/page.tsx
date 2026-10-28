@@ -58,6 +58,8 @@ export default async function ToolPage({ params }: Props) {
   const live = s.live ? liveLabel(s.live) : null;
   const pageUrl = SITE_URL + toolPath(s.name);
   const badgePath = `/badge/${s.name}.svg`;
+  // The registry's websiteUrl, shown as a link and named in the JSON-LD from this one value. Only http(s).
+  const website = s.website && /^https?:\/\//i.test(s.website) ? s.website : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -72,7 +74,7 @@ export default async function ToolPage({ params }: Props) {
         url: SITE_URL + toolPath(s.name),
         ...(s.version ? { softwareVersion: s.version } : {}),
         ...(gh?.license && gh.license !== "NOASSERTION" ? { license: `https://spdx.org/licenses/${gh.license}` } : {}),
-        sameAs: [s.repo && `https://github.com/${s.repo}`, s.website].filter(Boolean),
+        sameAs: [s.repo && `https://github.com/${s.repo}`, website].filter(Boolean),
         ...(s.updatedAt ? { dateModified: s.updatedAt } : {}),
       },
       {
@@ -114,6 +116,13 @@ export default async function ToolPage({ params }: Props) {
             <Row k="Endpoint" src={<a href={registryRecordUrl(s.name)}>registry</a>}>
               {remote ? <code>{remote.url}</code> : "None listed (runs locally)"}
             </Row>
+            {website && (
+              <Row k="Website" src={<a href={registryRecordUrl(s.name)}>registry</a>}>
+                <a href={website} rel="nofollow ugc">
+                  {clip(website.replace(/^https?:\/\//i, "").replace(/\/$/, ""), 70)}
+                </a>
+              </Row>
+            )}
             {s.live && (
               <Row k="Handshake" src={<Link href="/method">our check, {day(s.live.at)}</Link>}>
                 {live!.text}
@@ -218,7 +227,17 @@ export default async function ToolPage({ params }: Props) {
                 <code>{`npx -y ${npm.id}`}</code>
               </pre>
             )}
-            <p className="muted">Commands are built from the registry entry. Check the publisher&apos;s documentation before giving any server access to your data.</p>
+            <p className="muted">
+              Commands are built from the registry entry. Check{" "}
+              {website ? (
+                <a href={website} rel="nofollow ugc">
+                  the publisher&apos;s documentation
+                </a>
+              ) : (
+                "the publisher's documentation"
+              )}{" "}
+              before giving any server access to your data.
+            </p>
           </>
         )}
 
