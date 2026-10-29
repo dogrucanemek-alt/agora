@@ -5,7 +5,7 @@
 // probe policy. At most one open connection per host, so a host serving many entries is not hammered.
 //
 // Output data/probe.json, rewritten every 250 results so a stopped run resumes where it left off.
-// Usage: UV_THREADPOOL_SIZE=64 node scripts/probe.mjs [--fresh] [--retry] [--limit N] [--names a,b] [--out path]
+// Usage: UV_THREADPOOL_SIZE=64 node scripts/probe.mjs [--fresh] [--retry] [--limit N] [--names a,b] [--out path] [--catalog path]
 // (Node resolves DNS on a 4-thread pool by default; dead domains then starve it and live servers time out.)
 
 import { readFile, writeFile } from "node:fs/promises";
@@ -19,7 +19,8 @@ const args = process.argv.slice(2);
 const limit = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : Infinity;
 const only = args.includes("--names") ? new Set(args[args.indexOf("--names") + 1].split(",")) : null;
 
-const catalog = JSON.parse(await readFile(new URL("../data/katalog.json", import.meta.url), "utf8"));
+const CATALOG = new URL(args.includes("--catalog") ? args[args.indexOf("--catalog") + 1] : "../data/katalog.json", import.meta.url);
+const catalog = JSON.parse(await readFile(CATALOG, "utf8"));
 let done = {};
 if (!args.includes("--fresh")) {
   try {
@@ -72,7 +73,17 @@ function classify(e) {
   return "protocol_error";
 }
 
+// "auto" tries the 2026 discover handshake first and falls back to the 2025 initialize handshake, but a
+// 401 to the discover request ends it there. Some servers answer initialize and tools/list without a
+// token and 401 to everything else, so a sign-in answer is checked once more with initialize alone.
 async function probe(t) {
+  const first = await attempt(t, { mode: "auto" });
+  if (first.result !== "auth") return first;
+  const second = await attempt(t, undefined);
+  return second.result.startsWith("ok") ? { ...second, handshake: "initialize after a 401 to discover" } : first;
+}
+
+async function attempt(t, versionNegotiation) {
   const t0 = Date.now();
   const signal = AbortSignal.timeout(TIMEOUT_MS);
   // Remember every HTTP status the server sent: when the SDK reacts to a 401 by starting OAuth discovery
@@ -85,8 +96,7 @@ async function probe(t) {
     if (String(url).startsWith(t.url)) statuses.push(res.status);
     return res;
   };
-  // "auto": try the 2026 discover handshake first, fall back to the 2025 initialize handshake.
-  const client = new Client({ name: "agora-probe", version: "0.1.0" }, { capabilities: {}, versionNegotiation: { mode: "auto" } });
+  const client = new Client({ name: "agora-probe", version: "0.1.0" }, versionNegotiation ? { capabilities: {}, versionNegotiation } : { capabilities: {} });
   try {
     const transport = new StreamableHTTPClientTransport(new URL(t.url), { fetch: fetchWithUa });
     await client.connect(transport, { timeout: TIMEOUT_MS });
