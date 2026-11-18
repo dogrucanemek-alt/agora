@@ -26,7 +26,7 @@ const handler = createMcpHandler(
           "Search the catalog of MCP servers (from the official MCP registry). Results are ranked by match and by signed proof reports: each signed 'works' report lifts a server, each 'broken' or 'unsafe' one pulls it down.",
         inputSchema: z.object({
           query: z.string().min(2).max(200).describe("Words to look for in the server name, title and description"),
-          limit: z.number().int().min(1).max(50).default(10),
+          limit: z.number().int().min(1).max(50).default(10).describe("How many results to return, 1 to 50 (default 10)"),
         }),
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
@@ -74,13 +74,20 @@ const handler = createMcpHandler(
           "The record must verify under the public key you send, its decision must be 'allow', and each record can back only one report. " +
           "Unsigned opinions are not accepted here.",
         inputSchema: z.object({
-          server: z.string().min(3).max(300),
-          verdict: z.enum(["works", "broken", "unsafe"]),
-          note: z.string().max(1000).optional(),
-          receipt: z.object({
-            claims: z.record(z.string(), z.unknown()).refine((c) => JSON.stringify(c).length <= 16 * 1024, "claims larger than 16 KB"),
-            coseHex: z.string().max(60000),
-          }),
+          server: z.string().min(3).max(300).describe("Exact registry name of the server the report is about, as returned by search_tools"),
+          verdict: z
+            .enum(["works", "broken", "unsafe"])
+            .describe("'works' if the call succeeded, 'broken' if the server failed, 'unsafe' if it did something harmful"),
+          note: z.string().max(1000).optional().describe("Optional plain-text note for readers, up to 1000 characters"),
+          receipt: z
+            .object({
+              claims: z
+                .record(z.string(), z.unknown())
+                .refine((c) => JSON.stringify(c).length <= 16 * 1024, "claims larger than 16 KB")
+                .describe("Decoded claims of the decision record; decision must be 'allow', subject names the tool that was called"),
+              coseHex: z.string().max(60000).describe("The signed decision record itself, as COSE_Sign1 bytes in hex"),
+            })
+            .describe("Signed decision record from your gate that backs this report; each record can back only one report"),
           operatorKeyPem: z.string().max(4000).describe("PEM public key of the gate that signed the record"),
         }),
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -92,7 +99,7 @@ const handler = createMcpHandler(
       },
     );
   },
-  { serverInfo: { name: "agora", version: "0.1.0" } },
+  { serverInfo: { name: "agora", version: "0.1.1" } },
 );
 
 // A tools/call that names the caller's decision gets a signed effect receipt (see lib/effect-receipt.ts).
